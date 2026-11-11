@@ -1,0 +1,104 @@
+from dataclasses import replace
+from pathlib import Path
+
+import pytest
+
+from clipper.captions import Cue, build_ass
+from clipper.facecam import clamp_region
+from clipper.layout import MAX_BYTES, RenderError, build_filter, render, text_positions
+from clipper.media import MediaInfo, probe
+from clipper.models import Rect
+
+FONTS = Path(__file__).parent.parent / "assets" / "fonts"
+INFO_1080P30 = MediaInfo(width=1920, height=1080, duration=30.0, fps=30.0, has_audio=True)
+
+
+def render_with_ass(src, work_dir, *, facecam, title, max_bytes=MAX_BYTES):
+    work_dir.mkdir(parents=True, exist_ok=True)
+    info = probe(src)
+    ass = work_dir / "clip.ass"
+    ass.write_text(
+        build_ass(
+            [Cue(0.5, 1.5, "HELLO WORLD")],
+            title=title,
+            credit="twitch.tv/shroud",
+            duration=info.duration,
+            **text_positions(facecam is not None),
+        ),
+        encoding="utf-8",
+    )
+    dst = work_dir / "out.mp4"
+    render(src, dst, facecam=facecam, ass_path=ass, fonts_dir=FONTS, max_bytes=max_bytes)
+    return dst
+
+
+def test_text_positions():
+    assert text_positions(True) == {"title_y": 1000, "caption_y": 768, "credit_y": 1880}
+    assert text_positions(False) == {"title_y": 120, "caption_y": 1560, "credit_y": 1800}
+
+
+def test_filter_with_facecam_stacks_cam_over_game():
+    f = build_filter(INFO_1080P30, Rect(0, 720, 480, 360), Path("a.ass"), Path("fonts"))
+    assert "crop=480:360:0:720" in f and "vstack" in f and "1080:768" in f and "1080:1152" in f
+
+
+def test_filter_without_facecam_uses_blurred_background():
+    f = build_filter(INFO_1080P30, None, Path("a.ass"), Path("fonts"))
+    assert "gblur" in f and "overlay=0:240" in f and "1080:1440" in f
+
+
+def test_filter_caps_fps_at_60():
+    assert "fps=60," in build_filter(replace(INFO_1080P30, fps=120.0), None, Path("a.ass"), Path("f"))
+    assert "fps=30," in build_filter(INFO_1080P30, None, Path("a.ass"), Path("f"))
+
+
+def test_filter_keeps_fractional_fps():
+    assert "fps=29.97," in build_filter(replace(INFO_1080P30, fps=29.97), None, Path("a.ass"), Path("f"))
+
+
+@pytest.mark.parametrize("facecam", [None, Rect(0, 600, 480, 360)])
+@pytest.mark.parametrize("size", [(1920, 1080), (1280, 720), (640, 480), (720, 1280)])
+def test_render_output_is_always_1080x1920(make_video, tmp_path, size, facecam):
+    src = make_video(width=size[0], height=size[1])
+    cam = clamp_region(facecam, *size) if facecam else None
+    dst = render_with_ass(src, tmp_path / "w", facecam=cam, title="it's {5}:00 \\ 🔥\nnew line")
+    info = probe(dst)
+    assert (info.width, info.height, info.has_audio) == (1080, 1920, True)
+    assert info.duration == pytest.approx(3, abs=0.3)
+
+
+def test_render_source_without_audio(make_video, tmp_path):
+    info = probe(render_with_ass(make_video(audio=False), tmp_path / "w", facecam=None, title="t"))
+    assert (info.width, info.height, info.has_audio) == (1080, 1920, False)
+
+
+def test_render_caps_output_fps_at_60(make_video, tmp_path):
+    dst = render_with_ass(make_video(fps=120, seconds=1), tmp_path / "w", facecam=None, title="t")
+    assert probe(dst).fps == pytest.approx(60)
+
+
+def test_render_works_from_a_folder_with_awkward_characters(make_video, tmp_path):
+    work = tmp_path / "it's a [dir], x:y;z"
+    info = probe(render_with_ass(make_video(seconds=1), work, facecam=None, title="t"))
+    assert (info.width, info.height) == (1080, 1920)
+
+
+def test_render_recompresses_to_fit_limit(make_video, tmp_path):
+    src = make_video(seconds=5)
+    full = render_with_ass(src, tmp_path / "full", facecam=None, title="t").stat().st_size
+    limit = int(full * 0.7)
+    dst = render_with_ass(src, tmp_path / "small", facecam=None, title="t", max_bytes=limit)
+    assert dst.stat().st_size <= limit
+
+
+def test_render_raises_when_limit_is_impossible(make_video, tmp_path):
+    with pytest.raises(RenderError):
+        render_with_ass(make_video(), tmp_path / "w", facecam=None, title="t", max_bytes=1_000)
+    assert not (tmp_path / "w" / "out.mp4").exists()
+
+
+def test_render_failure_raises_render_error(tmp_path):
+    bad = tmp_path / "bad.mp4"
+    bad.write_text("nope")
+    with pytest.raises(RenderError):
+        render(bad, tmp_path / "o.mp4", facecam=None, ass_path=tmp_path / "x.ass", fonts_dir=FONTS)
