@@ -28,6 +28,20 @@ def score(clip: Clip, now: datetime) -> float:
     return clip.view_count / max(age_minutes, MIN_AGE_MINUTES)
 
 
+def eligible(
+    clips: list[Clip], *, game_id: str, cfg: SelectionConfig, done_ids: set[str]
+) -> list[Clip]:
+    """Clips que cumprem os filtros, antes de remover repetidos e aplicar limites."""
+    return [
+        clip
+        for clip in clips
+        if clip.game_id == game_id
+        and cfg.min_duration <= clip.duration <= cfg.max_duration
+        and clip.view_count >= cfg.min_views
+        and clip.id not in done_ids
+    ]
+
+
 def select(
     clips: list[Clip],
     *,
@@ -39,14 +53,7 @@ def select(
     now: datetime,
 ) -> list[Clip]:
     limit = min(cfg.max_per_run, cfg.max_per_day - delivered_today)
-    candidates = [
-        clip
-        for clip in clips
-        if clip.game_id == game_id
-        and cfg.min_duration <= clip.duration <= cfg.max_duration
-        and clip.view_count >= cfg.min_views
-        and clip.id not in done_ids
-    ]
+    candidates = eligible(clips, game_id=game_id, cfg=cfg, done_ids=done_ids)
     candidates.sort(key=lambda clip: score(clip, now), reverse=True)
 
     chosen: list[Clip] = []

@@ -1,0 +1,287 @@
+import logging
+import shutil
+from dataclasses import replace
+from datetime import timedelta
+from pathlib import Path
+
+import pytest
+
+from clipper import pipeline
+from clipper.captions import Word
+from clipper.config import Config, SelectionConfig
+from clipper.media import probe
+from clipper.models import Rect, RenderedClip, Streamer
+from clipper.pipeline import GameNotFound, RunSummary, process_clip, run
+from clipper.publishers.base import PublishError
+from clipper.state import State
+from clipper.twitch import TwitchAuthError, TwitchError, User
+from tests.helpers import HOUR, NOW, T0, clip
+
+ASSETS = Path(__file__).parent.parent / "assets"
+SHROUD = Streamer("shroud")
+OTHER = Streamer("other")
+
+
+def config(*streamers, **selection):
+    return Config(
+        game_name="Grand Theft Auto VI",
+        streamers=streamers or (SHROUD,),
+        selection=SelectionConfig(**selection),
+        hashtags=("#GTA6", "#shorts"),
+    )
+
+
+class FakeTwitch:
+    def __init__(self, clips_by_login, *, game_id="123"):
+        self.clips_by_login = clips_by_login
+        self.game_id = game_id
+        self.unknown = set()
+        self.failing = set()
+        self.auth_error = False
+        self.clip_calls = []
+
+    def get_game_id(self, name):
+        return self.game_id
+
+    def get_users(self, logins):
+        if self.auth_error:
+            raise TwitchAuthError("bad credentials")
+        return {
+            login: User("id-" + login, login, login.title())
+            for login in logins
+            if login not in self.unknown
+        }
+
+    def get_clips(self, user, started_at, ended_at):
+        self.clip_calls.append((user.login, started_at, ended_at))
+        if user.login in self.failing:
+            raise TwitchError("boom")
+        return list(self.clips_by_login.get(user.login, []))
+
+
+class FakePublisher:
+    def __init__(self):
+        self.published = []
+        self.fail = False
+
+    def publish(self, item):
+        if self.fail:
+            raise PublishError("telegram down")
+        self.published.append(item.clip.id)
+
+
+def fake_process(clip, streamer):
+    return RenderedClip(clip, Path("x.mp4"), clip.title, "desc")
+
+
+def three_clips():
+    return [
+        clip("slow", views=100, created=T0),
+        clip("fast", views=900, created=T0 + HOUR),
+        clip("mid", views=300, created=T0 + 2 * HOUR),
+    ]
+
+
+def test_delivers_best_clips_and_records_them():
+    state, publisher = State(), FakePublisher()
+    summary = run(
+        config(), state, FakeTwitch({"shroud": three_clips()}), publisher, now=NOW, process=fake_process
+    )
+    assert publisher.published == ["fast", "mid"]
+    assert summary == RunSummary(candidates=3, delivered=2, failed=0)
+    assert state.done_ids() == {"fast", "mid"}
+    assert state.delivered_today(NOW) == 2
+
+
+def test_requests_clips_for_lookback_window():
+    twitch = FakeTwitch({})
+    run(config(), State(), twitch, FakePublisher(), now=NOW, process=fake_process)
+    assert twitch.clip_calls == [("shroud", NOW - timedelta(hours=6), NOW)]
+
+
+def test_process_receives_the_streamer_of_each_clip():
+    seen = []
+
+    def process(c, streamer):
+        seen.append((c.id, streamer))
+        return fake_process(c, streamer)
+
+    cam = Streamer("other", Rect(0, 0, 100, 100))
+    twitch = FakeTwitch({"shroud": [clip("a")], "other": [clip("b", broadcaster="2", login="other")]})
+    run(config(SHROUD, cam), State(), twitch, FakePublisher(), now=NOW, process=process)
+    assert sorted(seen, key=lambda pair: pair[0]) == [("a", SHROUD), ("b", cam)]
+
+
+def test_one_failing_clip_does_not_stop_the_next():
+    def process(c, streamer):
+        if c.id == "fast":
+            raise RuntimeError("download failed")
+        return fake_process(c, streamer)
+
+    state, publisher = State(), FakePublisher()
+    summary = run(
+        config(), state, FakeTwitch({"shroud": three_clips()}), publisher, now=NOW, process=process
+    )
+    assert publisher.published == ["mid"]
+    assert summary == RunSummary(candidates=3, delivered=1, failed=1)
+    assert "fast" not in state.done_ids()
+
+
+def test_publish_failure_is_recorded_and_not_counted_today():
+    state, publisher = State(), FakePublisher()
+    publisher.fail = True
+    summary = run(
+        config(), state, FakeTwitch({"shroud": [clip("a")]}), publisher, now=NOW, process=fake_process
+    )
+    assert summary == RunSummary(candidates=1, delivered=0, failed=1)
+    assert state.delivered_today(NOW) == 0
+
+
+def test_clip_is_dropped_after_three_failures():
+    def process(c, streamer):
+        raise RuntimeError("always")
+
+    state, twitch = State(), FakeTwitch({"shroud": [clip("a")]})
+    for _ in range(3):
+        assert run(config(), state, twitch, FakePublisher(), now=NOW, process=process).failed == 1
+    fourth = run(config(), state, twitch, FakePublisher(), now=NOW, process=process)
+    assert fourth == RunSummary(candidates=0, delivered=0, failed=0)
+
+
+def test_unknown_streamer_is_skipped_with_warning(caplog):
+    twitch = FakeTwitch({"shroud": [clip("a")]})
+    twitch.unknown = {"ghost"}
+    publisher = FakePublisher()
+    with caplog.at_level(logging.WARNING):
+        run(config(Streamer("ghost"), SHROUD), State(), twitch, publisher, now=NOW, process=fake_process)
+    assert publisher.published == ["a"]
+    assert "ghost" in caplog.text
+
+
+def test_twitch_error_for_one_streamer_does_not_stop_the_others(caplog):
+    twitch = FakeTwitch({"other": [clip("b", broadcaster="2", login="other")]})
+    twitch.failing = {"shroud"}
+    publisher = FakePublisher()
+    with caplog.at_level(logging.WARNING):
+        run(config(SHROUD, OTHER), State(), twitch, publisher, now=NOW, process=fake_process)
+    assert publisher.published == ["b"]
+    assert "shroud" in caplog.text
+
+
+def test_auth_error_aborts():
+    twitch = FakeTwitch({})
+    twitch.auth_error = True
+    with pytest.raises(TwitchAuthError):
+        run(config(), State(), twitch, FakePublisher(), now=NOW, process=fake_process)
+
+
+def test_game_not_found_aborts():
+    with pytest.raises(GameNotFound, match="Grand Theft Auto VI"):
+        run(config(), State(), FakeTwitch({}, game_id=None), FakePublisher(), now=NOW, process=fake_process)
+
+
+def test_no_streamers_or_no_candidates_is_a_clean_noop():
+    publisher = FakePublisher()
+    empty = replace(config(), streamers=())
+    assert run(empty, State(), FakeTwitch({}), publisher, now=NOW, process=fake_process) == RunSummary(0, 0, 0)
+    assert run(config(), State(), FakeTwitch({}), publisher, now=NOW, process=fake_process) == RunSummary(0, 0, 0)
+    assert publisher.published == []
+
+
+def test_state_is_pruned():
+    state = State()
+    state.record_delivered(clip("old"), NOW - timedelta(days=15))
+    run(config(), state, FakeTwitch({}), FakePublisher(), now=NOW, process=fake_process)
+    assert state.done_ids() == set()
+
+
+def test_already_delivered_moments_are_not_sent_again():
+    state = State()
+    state.record_delivered(clip("first", video="v1", offset=100), NOW - HOUR)
+    twitch = FakeTwitch({"shroud": [clip("again", video="v1", offset=110)]})
+    publisher = FakePublisher()
+    run(config(), state, twitch, publisher, now=NOW, process=fake_process)
+    assert publisher.published == []
+
+
+# --- process_clip: cadeia real de edição, com rede e modelos substituídos ---
+
+
+@pytest.fixture
+def offline(monkeypatch, make_video):
+    source = make_video(seconds=2)
+
+    def fake_download(url, dest_dir):
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        return Path(shutil.copy(source, dest_dir / "Abc.mp4"))
+
+    monkeypatch.setattr(pipeline, "download_clip", fake_download)
+    monkeypatch.setattr(pipeline, "transcribe", lambda video: [Word(0.2, 0.6, "hello")])
+    monkeypatch.setattr(pipeline, "detect_facecam", lambda video, model: None)
+
+
+def test_process_clip_produces_a_publishable_video(offline, tmp_path):
+    item = process_clip(clip("Abc", title="what a {play}"), SHROUD, config(), tmp_path / "work", ASSETS)
+    info = probe(item.video_path)
+    assert (info.width, info.height) == (1080, 1920)
+    assert item.title == "what a {play} | Shroud #GTA6"
+    assert item.description.endswith("#GTA6 #shorts")
+    assert item.clip.id == "Abc"
+
+
+def test_process_clip_uses_the_manual_facecam_zone(offline, tmp_path, monkeypatch):
+    used = {}
+    real_render = pipeline.render
+
+    def spy(src, dst, **kwargs):
+        used.update(kwargs)
+        return real_render(src, dst, **kwargs)
+
+    monkeypatch.setattr(pipeline, "render", spy)
+    monkeypatch.setattr(pipeline, "detect_facecam", lambda video, model: pytest.fail("não devia detetar"))
+    streamer = Streamer("shroud", Rect(0, 600, 480, 360))
+    process_clip(clip("Abc"), streamer, config(), tmp_path / "work", ASSETS)
+    assert used["facecam"] == Rect(0, 600, 480, 360)
+
+
+def test_process_clip_falls_back_to_detection_when_manual_zone_is_outside(offline, tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(pipeline, "detect_facecam", lambda video, model: calls.append(video))
+    streamer = Streamer("shroud", Rect(5000, 5000, 100, 100))
+    process_clip(clip("Abc"), streamer, config(), tmp_path / "work", ASSETS)
+    assert len(calls) == 1
+
+
+def test_process_clip_survives_a_transcription_failure(offline, tmp_path, monkeypatch, caplog):
+    def broken(video):
+        raise RuntimeError("whisper exploded")
+
+    monkeypatch.setattr(pipeline, "transcribe", broken)
+    with caplog.at_level(logging.WARNING):
+        item = process_clip(clip("Abc"), SHROUD, config(), tmp_path / "work", ASSETS)
+    assert item.video_path.exists()
+    assert "legendas" in caplog.text
+
+
+def test_process_clip_without_hashtags_has_no_tag_in_title(offline, tmp_path):
+    cfg = replace(config(), hashtags=())
+    item = process_clip(clip("Abc", title="wow"), SHROUD, cfg, tmp_path / "work", ASSETS)
+    assert item.title == "wow | Shroud"
+
+
+def test_checkpoint_runs_after_each_clip_so_an_interrupted_run_loses_nothing():
+    state, saved = State(), []
+
+    def checkpoint():
+        saved.append(set(state.done_ids()))
+
+    run(
+        config(),
+        state,
+        FakeTwitch({"shroud": three_clips()}),
+        FakePublisher(),
+        now=NOW,
+        process=fake_process,
+        checkpoint=checkpoint,
+    )
+    assert saved == [{"fast"}, {"fast", "mid"}]
