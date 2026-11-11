@@ -7,6 +7,7 @@ import logging
 import os
 import sys
 import tempfile
+import time
 from dataclasses import replace
 from datetime import UTC, datetime
 from functools import partial
@@ -14,12 +15,16 @@ from pathlib import Path
 
 from clipper.config import ConfigError, load_config
 from clipper.pipeline import GameNotFound, process_clip, run
+from clipper.publishers.base import PublishError
 from clipper.publishers.local import LocalPublisher
 from clipper.publishers.telegram import TelegramPublisher
 from clipper.state import State, StateError
 from clipper.twitch import TwitchClient, TwitchError
 
 ASSETS = Path(__file__).resolve().parent.parent / "assets"
+# O trabalho no GitHub Actions é morto aos 14 minutos; deixar de começar clips
+# aos 8 dá margem para acabar o que estiver em curso e gravar o estado.
+RUN_BUDGET_SECONDS = 8 * 60
 
 
 class MissingSecret(Exception):
@@ -60,6 +65,9 @@ def _run(args: argparse.Namespace) -> int:
         publisher = TelegramPublisher(_secret("TELEGRAM_BOT_TOKEN"), _secret("TELEGRAM_CHAT_ID"))
         checkpoint = lambda: state.save(args.state)  # noqa: E731
     state = State.load(args.state)
+    if not args.dry_run:
+        publisher.check()
+    started = time.monotonic()
 
     with tempfile.TemporaryDirectory(prefix="clipper-") as temporary:
         work_dir = args.work or Path(temporary)
@@ -72,12 +80,18 @@ def _run(args: argparse.Namespace) -> int:
             now=datetime.now(UTC),
             process=process,
             checkpoint=checkpoint,
+            out_of_time=lambda: time.monotonic() - started > RUN_BUDGET_SECONDS,
         )
     if not args.dry_run:
         state.save(args.state)
     print(
         f"candidatos={summary.candidates} entregues={summary.delivered} falhados={summary.failed}"
     )
+    if summary.failed and not summary.delivered:
+        # Sem isto, uma avaria total (download bloqueado, ffmpeg em falta) passava
+        # despercebida: as execuções ficavam verdes e o Telegram apenas em silêncio.
+        print("erro: nenhum clip foi entregue e houve falhas; vê os avisos acima", file=sys.stderr)
+        return 1
     return 0
 
 
@@ -86,7 +100,9 @@ def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     try:
         return _run(args)
-    except (ConfigError, StateError, MissingSecret, GameNotFound, TwitchError) as error:
+    except (
+        ConfigError, StateError, MissingSecret, GameNotFound, TwitchError, PublishError
+    ) as error:
         print(f"erro: {error}", file=sys.stderr)
         return 1
 

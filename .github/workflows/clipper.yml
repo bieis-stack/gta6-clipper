@@ -30,7 +30,7 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.13"
           cache: pip
 
       - name: Instalar ffmpeg e tipo de letra de emoji
@@ -43,7 +43,7 @@ jobs:
           key: whisper-small-v1
 
       - name: Instalar o clipper
-        run: pip install -e .
+        run: pip install -e . -c constraints.txt
 
       - name: Procurar, editar e entregar clips
         env:

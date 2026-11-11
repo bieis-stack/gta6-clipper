@@ -13,6 +13,7 @@ TOKEN_URL = "https://id.twitch.tv/oauth2/token"
 API_URL = "https://api.twitch.tv/helix"
 TIMEOUT = 15
 MAX_PAGES = 3
+USERS_PER_REQUEST = 100
 
 
 class TwitchError(Exception):
@@ -48,13 +49,14 @@ class TwitchClient:
         return data[0]["id"] if data else None
 
     def get_users(self, logins: list[str]) -> dict[str, User]:
-        if not logins:
-            return {}
-        data = self._get("/users", {"login": [login.lower() for login in logins]})["data"]
-        return {
-            raw["login"].lower(): User(raw["id"], raw["login"].lower(), raw["display_name"])
-            for raw in data
-        }
+        users: dict[str, User] = {}
+        wanted = [login.lower() for login in logins]
+        for start in range(0, len(wanted), USERS_PER_REQUEST):
+            batch = wanted[start : start + USERS_PER_REQUEST]
+            for raw in self._get("/users", {"login": batch})["data"]:
+                login = raw["login"].lower()
+                users[login] = User(raw["id"], login, raw["display_name"])
+        return users
 
     def get_clips(self, user: User, started_at: datetime, ended_at: datetime) -> list[Clip]:
         params = {
@@ -122,9 +124,14 @@ class TwitchClient:
             raise TwitchError(f"sem ligação à Twitch em {path}: {type(error).__name__}") from None
         if response.status_code == 401:
             raise TwitchAuthError(f"a Twitch rejeitou o acesso em {path} (HTTP 401)")
-        if response.status_code != 200:
-            raise TwitchError(f"erro da Twitch em {path} (HTTP {response.status_code})")
         try:
-            return response.json()
+            body = response.json()
         except ValueError:
-            raise TwitchError(f"resposta inesperada da Twitch em {path}") from None
+            body = None
+        if response.status_code != 200:
+            reason = body.get("message") if isinstance(body, dict) else None
+            detail = f": {reason}" if reason else ""
+            raise TwitchError(f"erro da Twitch em {path} (HTTP {response.status_code}){detail}")
+        if not isinstance(body, dict) or not isinstance(body.get("data"), list):
+            raise TwitchError(f"resposta inesperada da Twitch em {path}")
+        return body

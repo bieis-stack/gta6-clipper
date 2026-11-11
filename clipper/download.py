@@ -21,6 +21,7 @@ def download_clip(url: str, dest_dir: Path) -> Path:
         "no_warnings": True,
         "noprogress": True,
         "retries": 3,
+        "socket_timeout": 30,
     }
     try:
         with yt_dlp.YoutubeDL(options) as ydl:

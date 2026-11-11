@@ -17,10 +17,22 @@ Corre sozinho no GitHub Actions, de 15 em 15 minutos, sem custos.
 
 ## Instalação
 
-Precisas de quatro chaves. Nenhuma vai para o código: ficam guardadas nos
-*Secrets* do GitHub.
+Precisas de um repositório no GitHub e de quatro chaves. Nenhuma chave vai
+para o código: ficam guardadas nos *Secrets* do GitHub.
 
-### 1. Aplicação na Twitch
+### 1. Repositório no GitHub
+
+1. Em <https://github.com/new>, cria um repositório e marca-o como **Public**.
+2. Envia para lá todos os ficheiros deste projeto, no ramo principal (`main`).
+
+Tem de ser público para ser gratuito: o GitHub só oferece minutos ilimitados
+de Actions a repositórios públicos. Num repositório privado o plano gratuito
+dá 2000 minutos por mês, que a correr de 15 em 15 minutos se gastam em uma a
+três semanas, e o sistema para. Se precisares mesmo de um repositório privado,
+abre `.github/workflows/clipper.yml` e troca `*/15 * * * *` por `0 * * * *`,
+para correr só de hora a hora.
+
+### 2. Aplicação na Twitch
 
 1. Entra em <https://dev.twitch.tv/console> com a tua conta da Twitch (tem de
    ter a autenticação de dois fatores ligada).
@@ -30,7 +42,7 @@ Precisas de quatro chaves. Nenhuma vai para o código: ficam guardadas nos
 3. Abre a aplicação criada. Copia o **Client ID** e carrega em **New Secret**
    para obteres o **Client Secret**.
 
-### 2. Bot do Telegram
+### 3. Bot do Telegram
 
 1. No Telegram, fala com **@BotFather** e envia `/newbot`. Segue as
    perguntas. No fim recebes o **token** do bot.
@@ -39,7 +51,7 @@ Precisas de quatro chaves. Nenhuma vai para o código: ficam guardadas nos
    trocando `<TOKEN>` pelo teu token. Procura `"chat":{"id":` — o número a
    seguir é o teu **chat id**.
 
-### 3. Chaves no GitHub
+### 4. Chaves no GitHub
 
 No repositório: **Settings → Secrets and variables → Actions → New repository
 secret**. Cria estes quatro, com os nomes exatos:
@@ -51,10 +63,11 @@ secret**. Cria estes quatro, com os nomes exatos:
 | `TELEGRAM_BOT_TOKEN` | token do bot |
 | `TELEGRAM_CHAT_ID` | o teu chat id |
 
-### 4. Streamers
+### 5. Streamers
 
 Edita `config.yaml` e põe os canais da Twitch dos streamers que te
-autorizaram:
+autorizaram. Podes escrever só o nome do canal ou colar a ligação
+(`twitch.tv/nome`):
 
 ```yaml
 streamers:
@@ -62,10 +75,11 @@ streamers:
   - twitch: outro_canal
 ```
 
-### 5. Ligar
+### 6. Ligar
 
-No separador **Actions** do repositório, aceita ativar os workflows. A partir
-daí o *Clipper* corre sozinho de 15 em 15 minutos.
+Não há nada a ligar: assim que o código estiver no ramo principal, o
+*Clipper* corre sozinho de 15 em 15 minutos. Vês cada execução no separador
+**Actions** do repositório.
 
 ## Ensaiar antes do lançamento
 
@@ -112,10 +126,31 @@ streamers:
 **Actions → Clipper → ⋯ → Disable workflow**. Para retomar, **Enable
 workflow**.
 
+## Quando algo corre mal
+
+O GitHub envia-te um email sempre que uma execução falha. Isso acontece
+quando:
+
+- uma chave está errada ou em falta (a mensagem diz qual);
+- o bot do Telegram não consegue falar com o teu chat;
+- houve clips para tratar e nenhum foi entregue.
+
+Abre a execução em **Actions** para ver a causa: as linhas que começam por
+`erro:` ou `WARNING` explicam o que falhou. A última linha de cada execução
+resume o resultado, por exemplo `candidatos=4 entregues=2 falhados=0`.
+
+Um clip que falhe três vezes é abandonado. Se uma execução for interrompida a
+meio, o que já tinha sido entregue não volta a ser enviado.
+
 ## Bom saber
 
 - **Agendamento.** O GitHub pode atrasar execuções agendadas alguns minutos
-  em horas de muita carga.
+  em horas de muita carga, e desliga os agendamentos de repositórios sem
+  atividade durante 60 dias. Enquanto o sistema entregar clips isso não
+  acontece, porque cada entrega grava um commit.
+- **Ensaios em fila.** Só uma execução corre de cada vez. Um ensaio manual
+  que fique à espera pode ser substituído pela execução agendada seguinte;
+  se isso acontecer, lança-o outra vez.
 - **Estado.** O ficheiro `state/state.json` guarda os clips já tratados. O
   sistema atualiza-o sozinho com um commit; não o edites à mão.
 - **Monetização.** A autorização dos streamers não garante monetização no

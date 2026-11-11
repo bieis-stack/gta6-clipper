@@ -5,6 +5,7 @@ import pytest
 
 from clipper.captions import Cue, build_ass
 from clipper.facecam import clamp_region
+from clipper import layout
 from clipper.layout import MAX_BYTES, RenderError, build_filter, render, text_positions
 from clipper.media import MediaInfo, probe
 from clipper.models import Rect
@@ -33,8 +34,14 @@ def render_with_ass(src, work_dir, *, facecam, title, max_bytes=MAX_BYTES):
 
 
 def test_text_positions():
-    assert text_positions(True) == {"title_y": 1000, "caption_y": 768, "credit_y": 1880}
-    assert text_positions(False) == {"title_y": 120, "caption_y": 1560, "credit_y": 1800}
+    assert text_positions(True) == {"title_y": 1000, "caption_y": 768, "credit_y": 1480}
+    assert text_positions(False) == {"title_y": 330, "caption_y": 1340, "credit_y": 1480}
+
+
+@pytest.mark.parametrize("has_facecam", [True, False])
+def test_text_stays_clear_of_the_platform_interface(has_facecam):
+    """O YouTube Shorts e o TikTok tapam o topo e o fundo do vídeo com botões e legendas."""
+    assert all(250 <= y <= 1500 for y in text_positions(has_facecam).values())
 
 
 def test_filter_with_facecam_stacks_cam_over_game():
@@ -45,6 +52,7 @@ def test_filter_with_facecam_stacks_cam_over_game():
 def test_filter_without_facecam_uses_blurred_background():
     f = build_filter(INFO_1080P30, None, Path("a.ass"), Path("fonts"))
     assert "gblur" in f and "overlay=0:240" in f and "1080:1440" in f
+    assert f.index("scale=270:480") < f.index("gblur")  # desfoca uma cópia pequena: mais rápido
 
 
 def test_filter_caps_fps_at_60():
@@ -102,3 +110,25 @@ def test_render_failure_raises_render_error(tmp_path):
     bad.write_text("nope")
     with pytest.raises(RenderError):
         render(bad, tmp_path / "o.mp4", facecam=None, ass_path=tmp_path / "x.ass", fonts_dir=FONTS)
+
+
+def test_render_fits_a_tight_limit_in_a_single_encode(make_video, tmp_path, monkeypatch):
+    src = make_video(seconds=5)
+    full = render_with_ass(src, tmp_path / "full", facecam=None, title="t").stat().st_size
+    encodes = []
+    real_run = layout.subprocess.run
+
+    def counting_run(command, *args, **kwargs):
+        if command[0] == "ffmpeg":
+            encodes.append(command)
+        return real_run(command, *args, **kwargs)
+
+    monkeypatch.setattr(layout.subprocess, "run", counting_run)
+    limit = int(full * 0.7)
+    dst = render_with_ass(src, tmp_path / "small", facecam=None, title="t", max_bytes=limit)
+    assert dst.stat().st_size <= limit
+    assert len(encodes) == 1
+
+
+def test_one_encode_can_never_outlive_the_github_job():
+    assert layout.TIMEOUT <= 300

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, fields
 from pathlib import Path
 
@@ -10,6 +11,8 @@ import yaml
 from clipper.models import Rect, Streamer
 
 DEFAULT_HASHTAGS = ("#GTA6", "#GTAVI", "#shorts")
+_CHANNEL_LINK = re.compile(r"^(https?://)?(www\.|m\.)?twitch\.tv/")
+_LOGIN = re.compile(r"[a-z0-9_]{1,25}")
 
 
 class ConfigError(Exception):
@@ -69,6 +72,21 @@ def _facecam(raw, login: str) -> Rect | None:
     return rect
 
 
+def _login(raw) -> str:
+    """Nome do canal da Twitch, aceitando também a ligação do canal ou um @nome."""
+    written = str(raw or "").strip()
+    if not written:
+        raise ConfigError("config: cada streamer precisa do campo 'twitch'")
+    login = _CHANNEL_LINK.sub("", written.lower()).lstrip("@")
+    login = login.split("?")[0].split("/")[0]
+    if not _LOGIN.fullmatch(login):
+        raise ConfigError(
+            f"config: '{written}' não é um canal da Twitch válido no campo 'twitch'; "
+            "usa só o nome do canal, como aparece em twitch.tv/nome"
+        )
+    return login
+
+
 def _streamers(raw) -> tuple[Streamer, ...]:
     if raw is None:
         return ()
@@ -78,9 +96,7 @@ def _streamers(raw) -> tuple[Streamer, ...]:
     for entry in raw:
         data = _mapping(entry, "streamers")
         _reject_unknown(data, {"twitch", "facecam"}, "streamers")
-        login = str(data.get("twitch") or "").strip().lower()
-        if not login:
-            raise ConfigError("config: cada streamer precisa do campo 'twitch'")
+        login = _login(data.get("twitch"))
         result.append(Streamer(login, _facecam(data.get("facecam"), login)))
     return tuple(result)
 

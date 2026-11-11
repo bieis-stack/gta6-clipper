@@ -284,4 +284,37 @@ def test_checkpoint_runs_after_each_clip_so_an_interrupted_run_loses_nothing():
         process=fake_process,
         checkpoint=checkpoint,
     )
-    assert saved == [{"fast"}, {"fast", "mid"}]
+    assert {"fast"} in saved
+    assert saved[-1] == {"fast", "mid"}
+
+
+class Killed(BaseException):
+    """Simula o GitHub a matar a execução a meio de um clip."""
+
+
+def test_a_run_killed_mid_clip_still_counts_as_an_attempt():
+    state, twitch, checkpoints = State(), FakeTwitch({"shroud": [clip("a")]}), []
+
+    def process(c, streamer):
+        raise Killed()
+
+    for _ in range(3):
+        with pytest.raises(Killed):
+            run(config(), state, twitch, FakePublisher(), now=NOW, process=process,
+                checkpoint=lambda: checkpoints.append(1))
+    assert len(checkpoints) == 3  # o estado foi gravado antes de cada tentativa
+    after = run(config(), state, twitch, FakePublisher(), now=NOW, process=fake_process)
+    assert after == RunSummary(candidates=0, delivered=0, failed=0)
+
+
+def test_stops_starting_clips_when_out_of_time():
+    state, publisher = State(), FakePublisher()
+    answers = iter([False, True])
+    summary = run(
+        config(), state, FakeTwitch({"shroud": three_clips()}), publisher, now=NOW,
+        process=fake_process, out_of_time=lambda: next(answers),
+    )
+    assert publisher.published == ["fast"]
+    assert summary == RunSummary(candidates=3, delivered=1, failed=0)
+    later = run(config(), state, FakeTwitch({"shroud": three_clips()}), publisher, now=NOW, process=fake_process)
+    assert "mid" in publisher.published and later.failed == 0

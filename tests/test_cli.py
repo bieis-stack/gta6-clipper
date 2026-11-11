@@ -3,6 +3,7 @@ import pytest
 from clipper import __main__ as cli
 from clipper.__main__ import main
 from clipper.pipeline import GameNotFound, RunSummary
+from clipper.publishers.base import PublishError
 from clipper.publishers.local import LocalPublisher
 from clipper.publishers.telegram import TelegramPublisher
 from clipper.twitch import TwitchAuthError
@@ -27,6 +28,20 @@ def env(monkeypatch):
     return setenv
 
 
+@pytest.fixture(autouse=True)
+def telegram_check(monkeypatch):
+    """Substitui a verificação prévia do Telegram, que faria um pedido real."""
+    state = {"calls": 0, "error": None}
+
+    def check(self):
+        state["calls"] += 1
+        if state["error"]:
+            raise state["error"]
+
+    monkeypatch.setattr(TelegramPublisher, "check", check)
+    return state
+
+
 @pytest.fixture
 def paths(tmp_path):
     config = tmp_path / "config.yaml"
@@ -38,13 +53,16 @@ def paths(tmp_path):
 def fake_run(monkeypatch):
     calls = []
 
-    def run(config, state, twitch, publisher, *, now, process, checkpoint=None):
-        calls.append({"config": config, "publisher": publisher, "checkpoint": checkpoint})
+    def run(config, state, twitch, publisher, *, now, process, checkpoint=None, out_of_time=None):
+        calls.append(
+            {"config": config, "publisher": publisher, "checkpoint": checkpoint, "out_of_time": out_of_time}
+        )
         if run.error:
             raise run.error
-        return RunSummary(candidates=3, delivered=2, failed=1)
+        return run.summary
 
     run.error = None
+    run.summary = RunSummary(candidates=3, delivered=2, failed=1)
     run.calls = calls
     monkeypatch.setattr(cli, "run", run)
     return run
@@ -131,3 +149,44 @@ def test_secret_values_never_printed(env, paths, fake_run, capsys):
     output = capsys.readouterr()
     for value in SECRETS.values():
         assert value not in output.out + output.err
+
+
+def test_telegram_is_checked_before_any_work(env, paths, fake_run, telegram_check, capsys):
+    env(*SECRETS)
+    telegram_check["error"] = PublishError("Telegram mal configurado: confirma TELEGRAM_CHAT_ID")
+    assert main(argv(paths)) == 1
+    assert fake_run.calls == []
+    assert "TELEGRAM_CHAT_ID" in capsys.readouterr().err
+
+
+def test_dry_run_does_not_check_telegram(env, paths, fake_run, telegram_check):
+    env("TWITCH_CLIENT_ID", "TWITCH_CLIENT_SECRET")
+    main(argv(paths, "--dry-run"))
+    assert telegram_check["calls"] == 0
+
+
+def test_run_where_every_clip_failed_exits_1_but_keeps_state(env, paths, fake_run, capsys):
+    env(*SECRETS)
+    fake_run.summary = RunSummary(candidates=2, delivered=0, failed=2)
+    assert main(argv(paths)) == 1
+    assert paths["state"].exists()
+    captured = capsys.readouterr()
+    assert "candidatos=2 entregues=0 falhados=2" in captured.out
+    assert "nenhum clip" in captured.err
+
+
+def test_run_with_some_failures_but_deliveries_stays_green(env, paths, fake_run):
+    env(*SECRETS)
+    fake_run.summary = RunSummary(candidates=3, delivered=1, failed=1)
+    assert main(argv(paths)) == 0
+
+
+def test_time_budget_is_passed_to_the_run(env, paths, fake_run, monkeypatch):
+    env(*SECRETS)
+    clock = {"now": 1000.0}
+    monkeypatch.setattr(cli.time, "monotonic", lambda: clock["now"])
+    main(argv(paths))
+    out_of_time = fake_run.calls[0]["out_of_time"]
+    assert out_of_time() is False
+    clock["now"] += cli.RUN_BUDGET_SECONDS + 1
+    assert out_of_time() is True

@@ -53,3 +53,18 @@ def test_invalid(tmp_path, text, fragment):
 def test_missing_file(tmp_path):
     with pytest.raises(ConfigError):
         load_config(tmp_path / "nope.yaml")
+
+
+@pytest.mark.parametrize(
+    "written",
+    ["https://www.twitch.tv/Shroud", "twitch.tv/shroud/", "@Shroud", "http://twitch.tv/shroud?tab=clips"],
+)
+def test_login_accepts_pasted_channel_links_and_handles(tmp_path, written):
+    cfg = load_config(write(tmp_path, f'game_name: "X"\nstreamers: [{{twitch: "{written}"}}]'))
+    assert cfg.streamers == (Streamer("shroud"),)
+
+
+@pytest.mark.parametrize("written", ["Nome Com Espaços", "çãõ", "a" * 26, "https://youtube.com/@x"])
+def test_login_that_cannot_be_a_twitch_channel_is_rejected_by_name(tmp_path, written):
+    with pytest.raises(ConfigError, match="twitch"):
+        load_config(write(tmp_path, f'game_name: "X"\nstreamers: [{{twitch: "{written}"}}]'))

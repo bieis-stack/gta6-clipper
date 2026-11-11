@@ -54,3 +54,8 @@ def test_download_without_resulting_file_is_an_error(fake_ydl, tmp_path, monkeyp
     monkeypatch.setattr(fake_ydl, "prepare_filename", lambda self, info: str(tmp_path / "nope.mp4"))
     with pytest.raises(DownloadError):
         download_clip("https://clips.twitch.tv/Abc", tmp_path)
+
+
+def test_download_gives_up_on_a_stalled_connection(fake_ydl, tmp_path):
+    download_clip("https://clips.twitch.tv/Abc", tmp_path)
+    assert fake_ydl.seen_options["socket_timeout"] == 30

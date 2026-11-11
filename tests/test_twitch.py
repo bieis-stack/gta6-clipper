@@ -184,3 +184,22 @@ def test_get_clips_follows_cursor_up_to_three_pages():
     assert [c.id for c in clips] == ["c0", "c1", "c2"]
     assert len(clip_calls) == 3
     assert clip_calls[1].request.params["after"] == "cur0"
+
+
+@responses.activate
+def test_get_users_asks_in_batches_of_100():
+    add_token()
+    responses.add(responses.GET, f"{API}/users", json={"data": [{"id": "1", "login": "u0", "display_name": "U0"}]})
+    responses.add(responses.GET, f"{API}/users", json={"data": [{"id": "2", "login": "u100", "display_name": "U100"}]})
+    users = client().get_users([f"u{i}" for i in range(150)])
+    user_calls = [call for call in responses.calls if "/users" in call.request.url]
+    assert [call.request.url.count("login=") for call in user_calls] == [100, 50]
+    assert set(users) == {"u0", "u100"}
+
+
+@responses.activate
+def test_api_error_includes_the_reason_twitch_gave():
+    add_token()
+    responses.add(responses.GET, f"{API}/users", json={"message": "Invalid login names"}, status=400)
+    with pytest.raises(TwitchError, match="Invalid login names"):
+        client().get_users(["x"])

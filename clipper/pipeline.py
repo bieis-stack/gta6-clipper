@@ -95,9 +95,11 @@ def run(
     now: datetime,
     process: Callable[[Clip, Streamer], RenderedClip],
     checkpoint: Callable[[], None] | None = None,
+    out_of_time: Callable[[], bool] | None = None,
 ) -> RunSummary:
-    """`checkpoint` é chamado depois de cada clip tratado, para gravar o estado:
-    assim uma execução interrompida a meio não reenvia o que já entregou."""
+    """`checkpoint` grava o estado antes e depois de cada clip: assim uma
+    execução interrompida a meio não reenvia o que já entregou.
+    `out_of_time` diz se já não há tempo para começar mais um clip."""
     state.prune(now)
     if not config.streamers:
         log.warning("nenhum streamer configurado em config.yaml; nada a fazer")
@@ -141,11 +143,18 @@ def run(
 
     delivered = failed = 0
     for clip in chosen:
+        if out_of_time is not None and out_of_time():
+            log.warning("tempo da execução esgotado; os clips restantes ficam para a próxima")
+            break
+        # A tentativa conta antes de começar: se a execução for morta a meio
+        # deste clip, ele não fica a bloquear as seguintes para sempre.
+        state.record_failure(clip, now)
+        if checkpoint is not None:
+            checkpoint()
         try:
             publisher.publish(process(clip, streamer_of[clip.id]))
         except Exception as error:  # um clip falhado não trava os seguintes
             log.warning("clip %s falhou: %s", clip.id, error)
-            state.record_failure(clip, now)
             failed += 1
         else:
             log.info("clip %s entregue (%s)", clip.id, clip.broadcaster_login)
