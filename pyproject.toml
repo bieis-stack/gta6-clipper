@@ -19,8 +19,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest", "responses"]
 
-[tool.setuptools]
-packages = ["clipper", "clipper.publishers"]
+[tool.setuptools.packages.find]
+include = ["clipper*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
