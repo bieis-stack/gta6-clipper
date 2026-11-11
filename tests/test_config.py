@@ -1,0 +1,55 @@
+import pytest
+
+from clipper.config import ConfigError, SelectionConfig, load_config
+from clipper.models import Rect, Streamer
+
+FULL = """
+game_name: "Grand Theft Auto VI"
+streamers:
+  - twitch: "  Shroud "
+    facecam: {x: 0, y: 720, w: 480, h: 360}
+  - twitch: other
+selection: {max_per_day: 3}
+metadata: {hashtags: ["#A", "#B"]}
+"""
+
+
+def write(tmp_path, text):
+    path = tmp_path / "config.yaml"
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
+def test_load_full(tmp_path):
+    cfg = load_config(write(tmp_path, FULL))
+    assert cfg.game_name == "Grand Theft Auto VI"
+    assert cfg.streamers == (Streamer("shroud", Rect(0, 720, 480, 360)), Streamer("other"))
+    assert cfg.selection == SelectionConfig(max_per_day=3)
+    assert cfg.hashtags == ("#A", "#B")
+
+
+def test_defaults(tmp_path):
+    cfg = load_config(write(tmp_path, 'game_name: "X"'))
+    assert cfg.streamers == ()
+    assert cfg.selection == SelectionConfig(6, 30, 15, 60, 2, 5)
+    assert cfg.hashtags == ("#GTA6", "#GTAVI", "#shorts")
+
+
+@pytest.mark.parametrize(
+    "text, fragment",
+    [
+        ("streamers: []", "game_name"),
+        ('game_name: "X"\nselection: {min_duration: 70}', "min_duration"),
+        ('game_name: "X"\nstreamers: [{twitch: a, facecam: {x: 0, y: 0, w: 0, h: 10}}]', "facecam"),
+        ('game_name: "X"\nstreamrs: []', "streamrs"),
+        ("- not a mapping", "config"),
+    ],
+)
+def test_invalid(tmp_path, text, fragment):
+    with pytest.raises(ConfigError, match=fragment):
+        load_config(write(tmp_path, text))
+
+
+def test_missing_file(tmp_path):
+    with pytest.raises(ConfigError):
+        load_config(tmp_path / "nope.yaml")

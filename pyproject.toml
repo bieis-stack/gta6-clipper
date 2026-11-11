@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clipper"
+version = "0.1.0"
+description = "Clips de streams da Twitch em formato vertical, entregues no Telegram"
+requires-python = ">=3.11"
+dependencies = [
+    "requests",
+    "pyyaml",
+    "yt-dlp",
+    "faster-whisper",
+    "opencv-python-headless",
+    "numpy",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "responses"]
+
+[tool.setuptools]
+packages = ["clipper", "clipper.publishers"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

@@ -1,0 +1,24 @@
+# Jogo a seguir, com o nome exato da categoria na Twitch.
+game_name: "Grand Theft Auto VI"
+
+# Canais da Twitch dos streamers que te autorizaram.
+# A facecam é detetada sozinha. Se o resultado sair mal para um streamer,
+# indica a zona à mão (em píxeis da imagem original da stream):
+#
+# streamers:
+#   - twitch: nome_do_canal
+#   - twitch: outro_canal
+#     facecam: {x: 0, y: 720, w: 480, h: 360}
+streamers: []
+
+selection:
+  lookback_hours: 6     # só clips criados nas últimas N horas
+  min_views: 30         # visualizações mínimas na Twitch
+  min_duration: 15      # segundos
+  max_duration: 60      # segundos
+  max_per_run: 2        # clips entregues por execução
+  max_per_day: 5        # clips entregues por dia (UTC)
+
+metadata:
+  # A primeira hashtag vai também no título.
+  hashtags: ["#GTA6", "#GTAVI", "#shorts"]
