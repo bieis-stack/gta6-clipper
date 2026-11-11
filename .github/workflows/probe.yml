@@ -1,0 +1,45 @@
+name: Sondagem da Twitch
+
+# Diagnóstico manual: confirma que os servidores do GitHub conseguem listar e
+# descarregar clips da Twitch. Não precisa de segredos.
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: "Canal da Twitch a testar"
+        type: string
+        default: "shroud"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar yt-dlp e ffmpeg
+        run: |
+          pip install -q yt-dlp
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+
+      - name: Listar os clips da semana
+        env:
+          CHANNEL: ${{ inputs.channel }}
+        run: |
+          yt-dlp --flat-playlist --playlist-end 3 --print "%(url)s" \
+            "https://www.twitch.tv/${CHANNEL}/clips?range=7d" | tee clips.txt
+          test -s clips.txt
+
+      - name: Descarregar o primeiro clip
+        run: yt-dlp -f "best[ext=mp4]/best" -o "clip.%(ext)s" "$(head -1 clips.txt)"
+
+      - name: Mostrar o formato do vídeo
+        run: |
+          ffprobe -v error -show_entries stream=codec_type,codec_name,width,height \
+            -of default=noprint_wrappers=1 clip.*
