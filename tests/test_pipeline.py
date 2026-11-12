@@ -347,3 +347,10 @@ def test_unknown_games_are_resolved_and_other_games_remembered_as_skipped():
     twitch.lookups.clear()
     run(config(), state, twitch, publisher, now=NOW, process=fake_process)
     assert twitch.lookups == []
+
+
+def test_rejected_clips_are_logged_with_their_game(caplog):
+    twitch = FakePublicTwitch({"shroud": [clip("irl", game=None)]}, {"irl": "irl"})
+    with caplog.at_level(logging.INFO):
+        run(config(), State(), twitch, FakePublisher(), now=NOW, process=fake_process)
+    assert "irl" in caplog.text and "outro jogo" in caplog.text

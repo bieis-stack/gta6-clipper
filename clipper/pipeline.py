@@ -129,6 +129,10 @@ def run(
             streamer_of[clip.id] = streamer
         clips.extend(found)
 
+    def reject(clip: Clip) -> None:
+        log.info("clip %s ignorado: é de outro jogo ('%s')", clip.id, clip.game_id)
+        state.record_skipped(clip, now)
+
     done_ids = state.done_ids()
     candidates = eligible(clips, game_id=game_id, cfg=config.selection, done_ids=done_ids)
     chosen = select(
@@ -143,7 +147,7 @@ def run(
         # afinal são de outro jogo ficam registados, para não voltar a gastar
         # uma consulta com eles na execução seguinte.
         resolve=getattr(twitch, "resolve_game", None),
-        on_reject=lambda clip: state.record_skipped(clip, now),
+        on_reject=reject,
     )
 
     delivered = failed = 0
