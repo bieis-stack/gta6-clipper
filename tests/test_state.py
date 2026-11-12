@@ -1,3 +1,4 @@
+import json
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
@@ -104,3 +105,14 @@ def test_a_clip_skipped_for_one_game_is_a_candidate_when_looking_for_its_own_gam
     again = State.load(tmp_path / "s.json")
     assert "mc" in again.done_ids("grand theft auto vi")
     assert "mc" not in again.done_ids("minecraft")
+
+
+def test_skipped_entry_without_a_known_game_does_not_hide_the_clip(tmp_path):
+    """Entradas gravadas antes de o jogo ser guardado não devem esconder clips."""
+    p = tmp_path / "s.json"
+    p.write_text(json.dumps({"version": 1, "clips": {"old": {
+        "broadcaster_id": "1", "video_id": None, "vod_offset": None,
+        "created_at": NOW.isoformat(), "status": "skipped", "attempts": 0,
+        "updated_at": NOW.isoformat(),
+    }}}))
+    assert "old" not in State.load(p).done_ids("minecraft")

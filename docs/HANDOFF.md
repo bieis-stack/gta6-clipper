@@ -54,39 +54,52 @@ as auditorias exigem mostrar a integração a funcionar. Foi essa a razão do
 desenho híbrido; não tentes automatizar a publicação por automação de browser,
 que viola os termos das duas plataformas e põe em risco a conta dele.
 
-## Em que ponto está
+## Em que ponto está (12 de novembro de 2026)
 
-**Feito e verificado localmente:** todo o código da Fase 1, com 178 testes a
-passar (`pytest`). Foram confirmados com dados reais, fora dos testes
-automáticos: a deteção de rostos numa fotografia real, a transcrição de uma
-gravação de voz real, e o aspeto dos vídeos nos dois modos de montagem.
+**O sistema está ligado e a correr sozinho** no GitHub Actions do repositório
+`bieis-stack/gta6-clipper`, de 15 em 15 minutos, à espera de clips de
+`Grand Theft Auto VI`. Lista de streamers já preenchida em `config.yaml`.
 
-**Nunca foi verificado, e é o que falta:** o sistema ainda não correu uma
-única vez contra a Twitch nem contra o Telegram verdadeiros. O ambiente onde
-foi escrito bloqueava o acesso a ambos. Em concreto, falta:
+**Funciona sem nenhuma chave.** O dono não conseguiu criar a aplicação na
+Twitch nem o bot do Telegram, e esta sessão não tem acesso aos Secrets do
+repositório. Por isso o sistema passou a ter dois modos, escolhidos sozinhos
+conforme as chaves existentes:
 
-1. ~~Código no ramo principal (`main`).~~ Feito a 12 de novembro de 2026.
-2. O dono criar a aplicação na Twitch e o bot do Telegram e guardar as quatro
-   chaves nos Secrets (`TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET`,
-   `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`). Não é possível ver daqui se já
-   existem; pergunta-lhe. Enquanto faltarem, as execuções agendadas terminam
-   em segundos sem erro (trabalho `keys` do workflow) e as manuais falham com
-   a lista do que falta.
-3. ~~Correr a **Sondagem da Twitch**.~~ Passou a 12 de novembro de 2026: os
-   servidores do GitHub listam e descarregam clips da Twitch. O clip veio em
-   HEVC 1920×1080 com áudio AAC; a montagem e a leitura de fotogramas com
-   HEVC estão cobertas por testes.
-4. Correr o workflow **Clipper** em modo de ensaio (`dry_run` marcado,
-   `game_name` = `Grand Theft Auto V`) e **ver os vídeos** do artefacto antes
-   de dar o trabalho por bom.
-5. Correr uma vez a sério para confirmar a entrega no Telegram e o commit do
-   ficheiro de estado.
-6. O dono preencher a lista de streamers em `config.yaml`.
+- **Fonte:** com `TWITCH_CLIENT_ID` e `TWITCH_CLIENT_SECRET`, a API oficial
+  (`clipper/twitch.py`); sem elas, as páginas públicas via `yt-dlp`
+  (`clipper/twitch_public.py`). A listagem pública não traz o jogo: cada
+  candidato bem colocado é aberto para o saber (`resolve_game`, no máximo 12
+  consultas por execução), e os de outro jogo ficam registados como
+  `skipped` com o jogo, para não gastar consultas na execução seguinte.
+- **Destino:** com `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID`, o Telegram;
+  sem elas, a página Releases do repositório
+  (`clipper/publishers/github_release.py`), com o `GITHUB_TOKEN` da própria
+  execução. Releases com mais de 7 dias são apagadas sozinhas.
 
-Três pontos do workflow só se podem confirmar no GitHub e ficaram por testar:
-se o passo que guarda o estado corre quando o trabalho é morto por tempo, se
-o `git pull --rebase` funciona com o clone superficial do `actions/checkout`,
-e quanto tempo demora uma execução real face ao limite de 14 minutos.
+**Verificado no GitHub real:** a listagem e o download públicos da Twitch
+(clips vêm em HEVC 1920×1080); a deteção do jogo clip a clip; um ensaio
+completo com clips reais de Minecraft do `caseoh_` (descarregar, facecam,
+legendas, montagem), cerca de 1 minuto e meio por clip de 60 segundos; as
+execuções agendadas a terminar sem erro e a gravar o estado. Os fotogramas
+do último ensaio estão no ramo `ensaio`.
+
+**Ainda não verificado:** uma entrega real na página Releases, e o Telegram
+(não há bot).
+
+**Falta, por ordem:**
+
+1. Fazer uma execução real (sem `dry_run`) com um jogo que tenha clips, e
+   confirmar que aparecem na página Releases.
+2. Opcional: se o dono criar o bot do Telegram, guardar as duas chaves e
+   confirmar a entrega lá.
+3. A 19 de novembro, confirmar que chegam clips de GTA VI. O nome da
+   categoria na Twitch tem de ser exatamente `Grand Theft Auto VI`; se for
+   outro, corrigir `game_name` em `config.yaml`.
+
+A lista de streamers foi escolhida a partir das classificações de audiência
+de 2026, porque o dono disse que os dez mais populares o autorizaram. Inclui
+canais que raramente jogam GTA (`caedrel`, `hasanabi`); não faz mal, mas
+convém confirmar com ele se quiser afinar.
 
 ## Decisões já tomadas, e porquê
 
