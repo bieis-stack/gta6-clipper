@@ -22,7 +22,46 @@ permissions:
   contents: write
 
 jobs:
+  # Enquanto as chaves não estiverem guardadas nos Secrets, as execuções
+  # agendadas terminam aqui em segundos e sem erro, em vez de falharem (e
+  # enviarem um email) de 15 em 15 minutos. Uma execução lançada à mão falha,
+  # para quem a lançou ver logo o que falta.
+  keys:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
+    steps:
+      - name: Verificar se as chaves estão configuradas
+        id: check
+        env:
+          TWITCH_CLIENT_ID: ${{ secrets.TWITCH_CLIENT_ID }}
+          TWITCH_CLIENT_SECRET: ${{ secrets.TWITCH_CLIENT_SECRET }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          missing=""
+          [ -n "$TWITCH_CLIENT_ID" ] || missing="$missing TWITCH_CLIENT_ID"
+          [ -n "$TWITCH_CLIENT_SECRET" ] || missing="$missing TWITCH_CLIENT_SECRET"
+          if [ "$DRY_RUN" != "true" ]; then
+            [ -n "$TELEGRAM_BOT_TOKEN" ] || missing="$missing TELEGRAM_BOT_TOKEN"
+            [ -n "$TELEGRAM_CHAT_ID" ] || missing="$missing TELEGRAM_CHAT_ID"
+          fi
+          if [ -z "$missing" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "ready=false" >> "$GITHUB_OUTPUT"
+          echo "::warning::Chaves por configurar:$missing. Vê o passo 4 do README."
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            exit 1
+          fi
+
   run:
+    needs: keys
+    if: ${{ needs.keys.outputs.ready == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 14
     steps:
