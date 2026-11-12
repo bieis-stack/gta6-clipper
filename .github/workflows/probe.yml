@@ -36,6 +36,33 @@ jobs:
             "https://www.twitch.tv/${CHANNEL}/clips?range=7d" | tee clips.txt
           test -s clips.txt
 
+      # Que dados dá a listagem sem chaves da Twitch? Serve para saber se o
+      # sistema consegue escolher clips (jogo, visualizações, data) sem a API.
+      - name: Mostrar os dados disponíveis sem chaves
+        env:
+          CHANNEL: ${{ inputs.channel }}
+        run: |
+          yt-dlp --flat-playlist --playlist-end 2 -J \
+            "https://www.twitch.tv/${CHANNEL}/clips?range=24hr" > flat.json || true
+          yt-dlp --skip-download -J "$(head -1 clips.txt)" > full.json || true
+          python - <<'EOF'
+          import json
+          keep = ("id", "title", "duration", "view_count", "timestamp", "upload_date",
+                  "channel", "uploader", "uploader_id", "creator", "categories", "game",
+                  "language", "url", "webpage_url")
+          for name in ("flat.json", "full.json"):
+              try:
+                  data = json.load(open(name))
+              except Exception as error:
+                  print(name, "ILEGIVEL", error)
+                  continue
+              entries = data.get("entries") or [data]
+              print("==", name, "entradas:", len(entries))
+              for entry in entries[:2]:
+                  print("  campos:", sorted(k for k, v in entry.items() if v not in (None, [], "")))
+                  print("  amostra:", {k: entry.get(k) for k in keep if entry.get(k) not in (None, [], "")})
+          EOF
+
       - name: Descarregar o primeiro clip
         run: yt-dlp -f "best[ext=mp4]/best" -o "clip.%(ext)s" "$(head -1 clips.txt)"
 
