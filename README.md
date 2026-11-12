@@ -2,23 +2,38 @@
 
 Procura na Twitch os clips de GTA VI dos streamers que escolheres, edita-os em
 vertical (1080×1920, com facecam em cima, legendas, título e crédito) e
-envia-os para o teu Telegram, prontos a publicar no YouTube e no TikTok.
+entrega-os prontos a publicar no YouTube e no TikTok.
 
-Corre sozinho no GitHub Actions, de 15 em 15 minutos, sem custos.
+Corre sozinho no GitHub Actions, de 15 em 15 minutos, sem custos e sem
+nenhuma chave obrigatória.
+
+## Onde aparecem os clips
+
+- **Sem configurar nada:** na página **Releases** do repositório
+  (<https://github.com/bieis-stack/gta6-clipper/releases>). Cada clip é uma
+  entrada com o vídeo para descarregar, o título e a descrição prontos a
+  copiar. As entradas com mais de 7 dias são apagadas sozinhas.
+- **Com o bot do Telegram configurado (opcional):** no teu Telegram, em duas
+  mensagens: o vídeo com o título, e a descrição num bloco que se copia com
+  um toque. É mais prático para publicar a partir do telemóvel.
+
+O repositório é público, por isso a página Releases também é: qualquer pessoa
+com a ligação vê os clips.
 
 ## Como funciona
 
-1. Pede à Twitch os clips que os espectadores criaram nas últimas horas.
-2. Fica com os do jogo certo, com duração e visualizações suficientes, e
-   ordena-os pela velocidade a que estão a ganhar visualizações.
+1. Vê os clips que os espectadores criaram nas últimas horas nos canais da
+   lista.
+2. Fica com os que têm duração e visualizações suficientes, ordena-os pela
+   velocidade a que estão a ganhar visualizações e confirma, um a um, que são
+   do jogo certo.
 3. Ignora clips repetidos do mesmo momento.
-4. Edita os melhores e envia cada um para o Telegram em duas mensagens: o
-   vídeo com o título, e a descrição num bloco que se copia com um toque.
+4. Edita os melhores e entrega-os (ver acima).
 
 ## Instalação
 
-Precisas de um repositório no GitHub e de quatro chaves. Nenhuma chave vai
-para o código: ficam guardadas nos *Secrets* do GitHub.
+Só o passo 1 é obrigatório, e já está feito. Os passos 2 a 4 são opcionais:
+melhoram o sistema, mas ele funciona sem eles.
 
 ### 1. Repositório no GitHub
 
@@ -32,7 +47,11 @@ três semanas, e o sistema para. Se precisares mesmo de um repositório privado,
 abre `.github/workflows/clipper.yml` e troca `*/15 * * * *` por `0 * * * *`,
 para correr só de hora a hora.
 
-### 2. Aplicação na Twitch
+### 2. Aplicação na Twitch (opcional)
+
+Sem ela, o sistema lê as páginas públicas da Twitch e tem de abrir cada clip
+para saber de que jogo é. Com ela, usa a API oficial, que é mais rápida e
+mais estável se a Twitch mudar as páginas.
 
 1. Entra em <https://dev.twitch.tv/console> com a tua conta da Twitch (tem de
    ter a autenticação de dois fatores ligada).
@@ -42,7 +61,9 @@ para correr só de hora a hora.
 3. Abre a aplicação criada. Copia o **Client ID** e carrega em **New Secret**
    para obteres o **Client Secret**.
 
-### 3. Bot do Telegram
+### 3. Bot do Telegram (opcional)
+
+Sem ele, os clips aparecem na página Releases do repositório.
 
 1. No Telegram, fala com **@BotFather** e envia `/newbot`. Segue as
    perguntas. No fim recebes o **token** do bot.
@@ -51,10 +72,13 @@ para correr só de hora a hora.
    trocando `<TOKEN>` pelo teu token. Procura `"chat":{"id":` — o número a
    seguir é o teu **chat id**.
 
-### 4. Chaves no GitHub
+### 4. Chaves no GitHub (só se fizeste o passo 2 ou 3)
 
-No repositório: **Settings → Secrets and variables → Actions → New repository
-secret**. Cria estes quatro, com os nomes exatos:
+Em <https://github.com/bieis-stack/gta6-clipper/settings/secrets/actions>,
+carrega em **New repository secret** e cria cada chave com o nome exato.
+Têm de ficar no separador **Secrets** (não em *Variables*), na secção
+**Repository secrets**. Cada par é independente: podes pôr só as da Twitch,
+só as do Telegram, ou as quatro.
 
 | Nome | Valor |
 |---|---|
@@ -85,14 +109,15 @@ Não há nada a ligar: assim que o código estiver no ramo principal, o
 
 Em **Actions → Clipper → Run workflow**:
 
-- marca **dry_run** para não enviar nada para o Telegram;
-- em **game_name** escreve um jogo que já exista, por exemplo
-  `Grand Theft Auto V`.
+- marca **dry_run** para não entregar nada;
+- em **game_name** escreve um jogo que tenha clips neste momento nos canais da
+  lista, por exemplo `Minecraft`.
 
 Quando terminar, os vídeos ficam em **Artifacts → clips-de-ensaio**, na página
-dessa execução. Vê-os antes de ligar o sistema a sério.
+dessa execução, e há fotogramas de cada vídeo no ramo `ensaio` do
+repositório. Um ensaio começa sempre do zero: ignora os clips já tratados.
 
-Para testar a entrega no Telegram, repete sem marcar **dry_run**.
+Para testar a entrega a sério, repete sem marcar **dry_run**.
 
 Se uma execução falhar com erros de rede ao descarregar clips, corre o
 workflow **Sondagem da Twitch**: confirma se os servidores do GitHub conseguem
@@ -131,7 +156,8 @@ workflow**.
 O GitHub envia-te um email sempre que uma execução falha. Isso acontece
 quando:
 
-- uma chave está errada ou em falta (a mensagem diz qual);
+- uma chave está errada, ou só uma de um par está definida (a mensagem diz
+  qual);
 - o bot do Telegram não consegue falar com o teu chat;
 - houve clips para tratar e nenhum foi entregue.
 

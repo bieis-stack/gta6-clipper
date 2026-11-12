@@ -53,7 +53,10 @@ class State:
             clip_id
             for clip_id, entry in self._clips.items()
             if entry["status"] in ("delivered", "failed")
-            or (entry["status"] == "skipped" and (game_id is None or entry.get("game") != game_id))
+            or (
+                entry["status"] == "skipped"
+                and (game_id is None or entry.get("game") not in (None, game_id))
+            )
         }
 
     def delivered_moments(self) -> list[Moment]:
