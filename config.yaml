@@ -9,7 +9,17 @@ game_name: "Grand Theft Auto VI"
 #   - twitch: nome_do_canal
 #   - twitch: outro_canal
 #     facecam: {x: 0, y: 720, w: 480, h: 360}
-streamers: []
+streamers:
+  - twitch: caedrel
+  - twitch: kaicenat
+  - twitch: hasanabi
+  - twitch: theburntpeanut
+  - twitch: jynxzi
+  - twitch: zackrawrr
+  - twitch: xqc
+  - twitch: caseoh_
+  - twitch: ibai
+  - twitch: rubius
 
 selection:
   lookback_hours: 6     # só clips criados nas últimas N horas
