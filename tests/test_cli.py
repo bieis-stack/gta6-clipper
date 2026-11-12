@@ -60,7 +60,7 @@ def fake_run(monkeypatch):
     def run(config, state, twitch, publisher, *, now, process, checkpoint=None, out_of_time=None):
         calls.append(
             {"config": config, "publisher": publisher, "checkpoint": checkpoint,
-             "out_of_time": out_of_time, "twitch": twitch}
+             "out_of_time": out_of_time, "twitch": twitch, "state": state}
         )
         if run.error:
             raise run.error
@@ -243,3 +243,12 @@ def test_half_configured_pair_is_an_error_naming_the_missing_half(env, paths, fa
     env(present)
     assert main(argv(paths, "--dry-run")) == 1 if present.startswith("TWITCH") else main(argv(paths)) == 1
     assert missing in capsys.readouterr().err
+
+
+def test_dry_run_starts_from_a_clean_slate(env, paths, fake_run):
+    """Um ensaio mostra o que o sistema faria de raiz, mesmo com clips já tratados."""
+    env("TWITCH_CLIENT_ID", "TWITCH_CLIENT_SECRET")
+    paths["state"].parent.mkdir(parents=True)
+    paths["state"].write_text('{"version": 1, "clips": {"old": {"status": "delivered"}}}')
+    main(argv(paths, "--dry-run"))
+    assert fake_run.calls[0]["state"].done_ids() == set()

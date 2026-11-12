@@ -133,7 +133,7 @@ def run(
         log.info("clip %s ignorado: é de outro jogo ('%s')", clip.id, clip.game_id)
         state.record_skipped(clip, now)
 
-    done_ids = state.done_ids()
+    done_ids = state.done_ids(game_id)
     candidates = eligible(clips, game_id=game_id, cfg=config.selection, done_ids=done_ids)
     chosen = select(
         clips,

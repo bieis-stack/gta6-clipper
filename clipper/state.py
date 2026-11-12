@@ -46,11 +46,14 @@ class State:
             encoding="utf-8",
         )
 
-    def done_ids(self) -> set[str]:
+    def done_ids(self, game_id: str | None = None) -> set[str]:
+        """Clips a não voltar a tratar. Um clip ignorado por ser de outro jogo
+        volta a contar quando se procura precisamente esse jogo."""
         return {
             clip_id
             for clip_id, entry in self._clips.items()
-            if entry["status"] in ("delivered", "failed", "skipped")
+            if entry["status"] in ("delivered", "failed")
+            or (entry["status"] == "skipped" and (game_id is None or entry.get("game") != game_id))
         }
 
     def delivered_moments(self) -> list[Moment]:
@@ -84,7 +87,9 @@ class State:
 
     def record_skipped(self, clip: Clip, now: datetime) -> None:
         """Clip que não interessa (por exemplo, de outro jogo): não voltar a olhar para ele."""
-        self._entry(clip, now)["status"] = "skipped"
+        entry = self._entry(clip, now)
+        entry["status"] = "skipped"
+        entry["game"] = clip.game_id
 
     def prune(self, now: datetime, days: int = 14) -> None:
         limit = now - timedelta(days=days)

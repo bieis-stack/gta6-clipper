@@ -99,7 +99,8 @@ def _run(args: argparse.Namespace) -> int:
     else:
         publisher = _destination()
         checkpoint = lambda: state.save(args.state)  # noqa: E731
-    state = State.load(args.state)
+    # Um ensaio mostra o que o sistema faria de raiz; nunca grava o estado.
+    state = State() if args.dry_run else State.load(args.state)
     if not args.dry_run:
         publisher.check()
     started = time.monotonic()

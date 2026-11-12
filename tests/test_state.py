@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -94,3 +95,12 @@ def test_skipped_clips_are_done_but_neither_delivered_nor_moments(tmp_path):
     assert again.done_ids() == {"other-game"}
     assert again.delivered_today(NOW) == 0
     assert again.delivered_moments() == []
+
+
+def test_a_clip_skipped_for_one_game_is_a_candidate_when_looking_for_its_own_game(tmp_path):
+    s = State()
+    s.record_skipped(replace(clip("mc"), game_id="minecraft"), NOW)
+    s.save(tmp_path / "s.json")
+    again = State.load(tmp_path / "s.json")
+    assert "mc" in again.done_ids("grand theft auto vi")
+    assert "mc" not in again.done_ids("minecraft")
