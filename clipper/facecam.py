@@ -16,6 +16,11 @@ CAM_ASPECT = 1080 / 768
 MIN_PRESENCE = 0.6
 TOLERANCE = 0.10
 SCORE_THRESHOLD = 0.8
+# Altura da zona recortada, em alturas de rosto, e quanto desce o seu centro em
+# relação ao do rosto. Afinado com clips reais: apertado o bastante para a
+# câmara encher a faixa, com folga para auscultadores em cima e ombros em baixo.
+REGION_HEIGHT = 2.3
+REGION_SHIFT = 0.1
 
 
 def _even(value: float) -> int:
@@ -55,12 +60,12 @@ def stable_face(boxes_per_frame: list[list[Rect]], frame_w: int) -> Rect | None:
 
 def face_to_region(face: Rect, frame_w: int, frame_h: int) -> Rect:
     """Alarga o rosto até uma zona com o formato da faixa da facecam."""
-    height = 3.0 * face.h
+    height = REGION_HEIGHT * face.h
     width = height * CAM_ASPECT
     shrink = min(1.0, frame_w / width, frame_h / height)
     w, h = _even(width * shrink), _even(height * shrink)
     cx, cy = _center(face)
-    cy += 0.25 * face.h
+    cy += REGION_SHIFT * face.h
     x = min(max(int(cx - w / 2), 0), frame_w - w)
     y = min(max(int(cy - h / 2), 0), frame_h - h)
     return Rect(x, y, w, h)

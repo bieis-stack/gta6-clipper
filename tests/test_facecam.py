@@ -107,3 +107,12 @@ def test_detect_facecam_finds_a_real_face_in_a_corner(tmp_path):
     assert region.y <= 500 and region.y + region.h >= 600
     assert region.x + region.w <= 1280 and region.y + region.h <= 720
     assert region.w / region.h == pytest.approx(1080 / 768, rel=0.03)
+
+
+def test_region_is_tight_around_the_face():
+    """Visto num clip real: uma zona larga demais mostra mais jogo do que streamer."""
+    r = face_to_region(Rect(900, 400, 100, 100), 1920, 1080)
+    assert r.h == pytest.approx(230, abs=2)
+    face_top, face_bottom = 400, 500
+    assert face_top - r.y == pytest.approx(55, abs=3)       # espaço para cabelo e auscultadores
+    assert (r.y + r.h) - face_bottom == pytest.approx(75, abs=3)  # queixo e ombros
