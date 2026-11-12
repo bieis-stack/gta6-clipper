@@ -354,3 +354,12 @@ def test_rejected_clips_are_logged_with_their_game(caplog):
     with caplog.at_level(logging.INFO):
         run(config(), State(), twitch, FakePublisher(), now=NOW, process=fake_process)
     assert "irl" in caplog.text and "outro jogo" in caplog.text
+
+
+def test_clips_skipped_for_another_game_count_again_when_the_game_changes():
+    state = State()
+    state.record_skipped(clip("gta5", game="999"), NOW)
+    twitch = FakeTwitch({"shroud": [clip("gta5", game="999")]}, game_id="999")
+    publisher = FakePublisher()
+    run(config(), state, twitch, publisher, now=NOW, process=fake_process)
+    assert publisher.published == ["gta5"]
