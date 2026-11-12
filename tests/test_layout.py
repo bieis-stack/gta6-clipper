@@ -132,3 +132,47 @@ def test_render_fits_a_tight_limit_in_a_single_encode(make_video, tmp_path, monk
 
 def test_one_encode_can_never_outlive_the_github_job():
     assert layout.TIMEOUT <= 300
+
+
+def hevc_source(tmp_path):
+    """A Twitch entrega clips em HEVC, não só em H.264."""
+    import subprocess
+
+    path = tmp_path / "hevc.mp4"
+    subprocess.run(
+        [
+            "ffmpeg", "-v", "error", "-y",
+            "-f", "lavfi", "-i", "testsrc=size=1920x1080:rate=60:duration=2",
+            "-f", "lavfi", "-i", "sine=frequency=440:duration=2",
+            "-c:v", "libx265", "-preset", "ultrafast", "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-shortest", str(path),
+        ],
+        check=True,
+    )
+    return path
+
+
+def test_render_accepts_hevc_clips_and_outputs_h264(tmp_path):
+    import json
+    import subprocess
+
+    dst = render_with_ass(hevc_source(tmp_path), tmp_path / "w", facecam=None, title="t")
+    info = probe(dst)
+    assert (info.width, info.height, info.has_audio) == (1080, 1920, True)
+    streams = json.loads(
+        subprocess.run(
+            ["ffprobe", "-v", "error", "-of", "json", "-show_streams", str(dst)],
+            capture_output=True, text=True, check=True,
+        ).stdout
+    )["streams"]
+    assert {s["codec_name"] for s in streams} == {"h264", "aac"}
+
+
+def test_facecam_detection_reads_hevc_clips(tmp_path, monkeypatch):
+    from clipper import facecam
+
+    frames = []
+    real = facecam.stable_face
+    monkeypatch.setattr(facecam, "stable_face", lambda boxes, w: frames.append(len(boxes)) or real(boxes, w))
+    assert facecam.detect_facecam(hevc_source(tmp_path)) is None
+    assert frames == [10]  # os 10 fotogramas foram mesmo lidos

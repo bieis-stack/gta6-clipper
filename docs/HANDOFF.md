@@ -56,7 +56,7 @@ que viola os termos das duas plataformas e põe em risco a conta dele.
 
 ## Em que ponto está
 
-**Feito e verificado localmente:** todo o código da Fase 1, com 176 testes a
+**Feito e verificado localmente:** todo o código da Fase 1, com 178 testes a
 passar (`pytest`). Foram confirmados com dados reais, fora dos testes
 automáticos: a deteção de rostos numa fotografia real, a transcrição de uma
 gravação de voz real, e o aspeto dos vídeos nos dois modos de montagem.
@@ -65,15 +65,17 @@ gravação de voz real, e o aspeto dos vídeos nos dois modos de montagem.
 única vez contra a Twitch nem contra o Telegram verdadeiros. O ambiente onde
 foi escrito bloqueava o acesso a ambos. Em concreto, falta:
 
-1. Garantir que o código está no ramo principal (`main`) do repositório. O
-   agendamento do GitHub só dispara a partir do ramo principal.
+1. ~~Código no ramo principal (`main`).~~ Feito a 12 de novembro de 2026.
 2. O dono criar a aplicação na Twitch e o bot do Telegram e guardar as quatro
    chaves nos Secrets (`TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET`,
-   `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`).
-3. Correr o workflow **Sondagem da Twitch** (`probe.yml`). É o maior risco em
-   aberto: ninguém confirmou que os servidores do GitHub conseguem descarregar
-   clips da Twitch. Se falhar por bloqueio de rede, a spec prevê mover o
-   download e a edição para o computador do dono.
+   `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`). Não é possível ver daqui se já
+   existem; pergunta-lhe. Enquanto faltarem, as execuções agendadas terminam
+   em segundos sem erro (trabalho `keys` do workflow) e as manuais falham com
+   a lista do que falta.
+3. ~~Correr a **Sondagem da Twitch**.~~ Passou a 12 de novembro de 2026: os
+   servidores do GitHub listam e descarregam clips da Twitch. O clip veio em
+   HEVC 1920×1080 com áudio AAC; a montagem e a leitura de fotogramas com
+   HEVC estão cobertas por testes.
 4. Correr o workflow **Clipper** em modo de ensaio (`dry_run` marcado,
    `game_name` = `Grand Theft Auto V`) e **ver os vídeos** do artefacto antes
    de dar o trabalho por bom.
