@@ -73,6 +73,29 @@ jobs:
           if-no-files-found: warn
           retention-days: 3
 
+      # Fotogramas dos vídeos do ensaio, num ramo à parte ("ensaio"), para se
+      # poder ver o aspeto dos clips sem descarregar os vídeos inteiros.
+      - name: Guardar fotogramas do ensaio
+        if: ${{ inputs.dry_run }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p previews
+          for video in out/*.mp4; do
+            [ -e "$video" ] || continue
+            name=$(basename "$video" .mp4)
+            ffmpeg -v error -y -ss 1 -i "$video" -frames:v 1 -vf scale=405:720 "previews/${name}_1s.jpg"
+            ffmpeg -v error -y -ss 12 -i "$video" -frames:v 1 -vf scale=405:720 "previews/${name}_12s.jpg"
+            cp "out/${name}.txt" previews/ 2>/dev/null || true
+          done
+          if [ -z "$(ls previews)" ]; then exit 0; fi
+          cd previews
+          git init -q -b ensaio
+          git add -A
+          git -c user.name=clipper-bot -c user.email=clipper-bot@users.noreply.github.com \
+            commit -q -m "fotogramas do ensaio"
+          git push -q -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" ensaio
+
       # Corre mesmo que o passo anterior falhe ou seja interrompido: o que já
       # foi entregue fica registado e não volta a ser enviado.
       - name: Guardar o estado

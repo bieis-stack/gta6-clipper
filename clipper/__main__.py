@@ -135,6 +135,9 @@ def _run(args: argparse.Namespace) -> int:
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    # As bibliotecas de rede registam cada pedido; isso esconde as linhas úteis.
+    for noisy in ("httpx", "huggingface_hub", "urllib3"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
     try:
         return _run(args)
     except (
