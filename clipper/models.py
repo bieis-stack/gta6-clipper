@@ -39,7 +39,7 @@ class Clip:
     broadcaster_login: str
     broadcaster_name: str
     title: str
-    game_id: str
+    game_id: str | None  # None: ainda não se sabe de que jogo é
     view_count: int
     created_at: datetime
     duration: float

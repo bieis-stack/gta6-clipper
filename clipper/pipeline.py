@@ -139,6 +139,11 @@ def run(
         seen_moments=state.delivered_moments(),
         delivered_today=state.delivered_today(now),
         now=now,
+        # Só a fonte sem chaves tem de descobrir o jogo clip a clip. Os que
+        # afinal são de outro jogo ficam registados, para não voltar a gastar
+        # uma consulta com eles na execução seguinte.
+        resolve=getattr(twitch, "resolve_game", None),
+        on_reject=lambda clip: state.record_skipped(clip, now),
     )
 
     delivered = failed = 0

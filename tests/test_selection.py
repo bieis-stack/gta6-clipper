@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import timedelta
 
 from clipper.config import SelectionConfig
@@ -70,3 +71,62 @@ def test_select_skips_duplicates_of_seen_and_of_chosen():
 
 def test_select_ignores_the_same_clip_listed_twice():
     assert ids(select([clip("a"), clip("a")], **args())) == ["a"]
+
+
+# --- clips cujo jogo ainda não se conhece (fonte sem chaves da Twitch) ---
+
+
+def resolver(games, calls=None):
+    def resolve(c):
+        if calls is not None:
+            calls.append(c.id)
+        game = games.get(c.id)
+        return None if game is None else replace(c, game_id=game)
+
+    return resolve
+
+
+def test_unknown_game_is_looked_up_in_rank_order_until_the_limit_is_filled():
+    clips = [
+        clip("best", game=None, views=900),
+        clip("wrong", game=None, views=800),
+        clip("good", game=None, views=700),
+        clip("never", game=None, views=600),
+        clip("never2", game=None, views=500),
+    ]
+    calls, rejected = [], []
+    out = select(
+        clips,
+        **args(resolve=resolver({"best": "123", "wrong": "999", "good": "123"}, calls),
+               on_reject=rejected.append),
+    )
+    assert ids(out) == ["best", "good"]
+    assert [c.game_id for c in out] == ["123", "123"]
+    assert calls == ["best", "wrong", "good"]  # não gasta pedidos depois de encher
+    assert ids(rejected) == ["wrong"]
+
+
+def test_unknown_game_without_a_resolver_is_never_selected():
+    assert select([clip("a", game=None)], **args()) == []
+
+
+def test_lookups_are_capped_per_run():
+    clips = [clip(f"c{i}", game=None, views=900 - i) for i in range(10)]
+    calls = []
+    out = select(clips, **args(resolve=resolver({}, calls), max_lookups=3))
+    assert out == [] and len(calls) == 3
+
+
+def test_failed_lookup_is_neither_selected_nor_rejected():
+    rejected = []
+    out = select(
+        [clip("a", game=None)], **args(resolve=resolver({"a": None}), on_reject=rejected.append)
+    )
+    assert out == [] and rejected == []
+
+
+def test_duplicates_are_skipped_before_spending_a_lookup():
+    calls = []
+    clips = [clip("dupe", game=None, video="v2", offset=10)]
+    select(clips, **args(resolve=resolver({"dupe": "123"}, calls), seen_moments=[m(video="v2", offset=30)]))
+    assert calls == []

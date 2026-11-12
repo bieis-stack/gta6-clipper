@@ -4,9 +4,11 @@ from clipper import __main__ as cli
 from clipper.__main__ import main
 from clipper.pipeline import GameNotFound, RunSummary
 from clipper.publishers.base import PublishError
+from clipper.publishers.github_release import GitHubReleasePublisher
 from clipper.publishers.local import LocalPublisher
 from clipper.publishers.telegram import TelegramPublisher
-from clipper.twitch import TwitchAuthError
+from clipper.twitch import TwitchAuthError, TwitchClient
+from clipper.twitch_public import PublicTwitch
 
 SECRETS = {
     "TWITCH_CLIENT_ID": "twitch-id-value",
@@ -18,7 +20,7 @@ SECRETS = {
 
 @pytest.fixture
 def env(monkeypatch):
-    for name in SECRETS:
+    for name in (*SECRETS, "GITHUB_TOKEN", "GITHUB_REPOSITORY"):
         monkeypatch.delenv(name, raising=False)
 
     def setenv(*names):
@@ -39,6 +41,8 @@ def telegram_check(monkeypatch):
             raise state["error"]
 
     monkeypatch.setattr(TelegramPublisher, "check", check)
+    monkeypatch.setattr(GitHubReleasePublisher, "check", check)
+    monkeypatch.setattr(GitHubReleasePublisher, "prune", lambda self, now: state.update(pruned=True))
     return state
 
 
@@ -55,7 +59,8 @@ def fake_run(monkeypatch):
 
     def run(config, state, twitch, publisher, *, now, process, checkpoint=None, out_of_time=None):
         calls.append(
-            {"config": config, "publisher": publisher, "checkpoint": checkpoint, "out_of_time": out_of_time}
+            {"config": config, "publisher": publisher, "checkpoint": checkpoint,
+             "out_of_time": out_of_time, "twitch": twitch}
         )
         if run.error:
             raise run.error
@@ -190,3 +195,51 @@ def test_time_budget_is_passed_to_the_run(env, paths, fake_run, monkeypatch):
     assert out_of_time() is False
     clock["now"] += cli.RUN_BUDGET_SECONDS + 1
     assert out_of_time() is True
+
+
+# --- sem chaves: fonte pública da Twitch e entrega em Releases ---
+
+
+def test_with_twitch_keys_the_official_api_is_used(env, paths, fake_run):
+    env(*SECRETS)
+    main(argv(paths))
+    assert isinstance(fake_run.calls[0]["twitch"], TwitchClient)
+
+
+def test_without_twitch_keys_the_public_listing_is_used(env, paths, fake_run):
+    env("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID")
+    assert main(argv(paths)) == 0
+    assert isinstance(fake_run.calls[0]["twitch"], PublicTwitch)
+
+
+def test_without_telegram_keys_clips_go_to_github_releases(env, paths, fake_run, monkeypatch, telegram_check):
+    monkeypatch.setenv("GITHUB_TOKEN", "ghs_value")
+    monkeypatch.setenv("GITHUB_REPOSITORY", "bieis-stack/gta6-clipper")
+    assert main(argv(paths)) == 0
+    assert isinstance(fake_run.calls[0]["publisher"], GitHubReleasePublisher)
+    assert telegram_check["calls"] == 1  # o destino é verificado antes de trabalhar
+    assert telegram_check.get("pruned") is True
+
+
+def test_telegram_wins_over_github_releases_when_configured(env, paths, fake_run, monkeypatch):
+    env("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID")
+    monkeypatch.setenv("GITHUB_TOKEN", "ghs_value")
+    monkeypatch.setenv("GITHUB_REPOSITORY", "bieis-stack/gta6-clipper")
+    main(argv(paths))
+    assert isinstance(fake_run.calls[0]["publisher"], TelegramPublisher)
+
+
+def test_no_destination_at_all_is_an_error_that_says_what_to_do(env, paths, fake_run, capsys):
+    assert main(argv(paths)) == 1
+    assert "TELEGRAM_BOT_TOKEN" in capsys.readouterr().err
+    assert fake_run.calls == []
+
+
+@pytest.mark.parametrize(
+    "present, missing",
+    [("TWITCH_CLIENT_ID", "TWITCH_CLIENT_SECRET"), ("TELEGRAM_CHAT_ID", "TELEGRAM_BOT_TOKEN")],
+)
+def test_half_configured_pair_is_an_error_naming_the_missing_half(env, paths, fake_run, present, missing, capsys):
+    env(present)
+    assert main(argv(paths, "--dry-run")) == 1 if present.startswith("TWITCH") else main(argv(paths)) == 1
+    assert missing in capsys.readouterr().err

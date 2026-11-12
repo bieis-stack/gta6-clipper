@@ -16,10 +16,14 @@ from pathlib import Path
 from clipper.config import ConfigError, load_config
 from clipper.pipeline import GameNotFound, process_clip, run
 from clipper.publishers.base import PublishError
+from clipper.publishers.github_release import GitHubReleasePublisher
 from clipper.publishers.local import LocalPublisher
 from clipper.publishers.telegram import TelegramPublisher
 from clipper.state import State, StateError
 from clipper.twitch import TwitchClient, TwitchError
+from clipper.twitch_public import PublicTwitch
+
+log = logging.getLogger(__name__)
 
 ASSETS = Path(__file__).resolve().parent.parent / "assets"
 # O trabalho no GitHub Actions é morto aos 14 minutos; deixar de começar clips
@@ -31,11 +35,42 @@ class MissingSecret(Exception):
     pass
 
 
-def _secret(name: str) -> str:
-    value = os.environ.get(name, "").strip()
-    if not value:
-        raise MissingSecret(f"falta a variável de ambiente {name}")
-    return value
+def _env(name: str) -> str:
+    return os.environ.get(name, "").strip()
+
+
+def _pair(first: str, second: str) -> tuple[str, str] | None:
+    """Duas chaves que só fazem sentido juntas. None se nenhuma estiver definida."""
+    a, b = _env(first), _env(second)
+    if a and b:
+        return a, b
+    if a or b:
+        raise MissingSecret(f"falta a variável de ambiente {second if a else first}")
+    return None
+
+
+def _source():
+    keys = _pair("TWITCH_CLIENT_ID", "TWITCH_CLIENT_SECRET")
+    if keys:
+        log.info("fonte: API oficial da Twitch")
+        return TwitchClient(*keys)
+    log.info("fonte: páginas públicas da Twitch (sem chaves)")
+    return PublicTwitch()
+
+
+def _destination():
+    telegram = _pair("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID")
+    if telegram:
+        log.info("destino: Telegram")
+        return TelegramPublisher(*telegram)
+    token, repository = _env("GITHUB_TOKEN"), _env("GITHUB_REPOSITORY")
+    if token and repository:
+        log.info("destino: página Releases de %s", repository)
+        return GitHubReleasePublisher(token, repository)
+    raise MissingSecret(
+        "não há para onde enviar os clips: define TELEGRAM_BOT_TOKEN e TELEGRAM_CHAT_ID "
+        "(ou corre no GitHub Actions, que os publica na página Releases)"
+    )
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -57,12 +92,12 @@ def _run(args: argparse.Namespace) -> int:
     config = load_config(args.config)
     if args.game_name.strip():
         config = replace(config, game_name=args.game_name.strip())
-    twitch = TwitchClient(_secret("TWITCH_CLIENT_ID"), _secret("TWITCH_CLIENT_SECRET"))
+    twitch = _source()
     if args.dry_run:
         publisher = LocalPublisher(args.out)
         checkpoint = None
     else:
-        publisher = TelegramPublisher(_secret("TELEGRAM_BOT_TOKEN"), _secret("TELEGRAM_CHAT_ID"))
+        publisher = _destination()
         checkpoint = lambda: state.save(args.state)  # noqa: E731
     state = State.load(args.state)
     if not args.dry_run:
@@ -84,6 +119,8 @@ def _run(args: argparse.Namespace) -> int:
         )
     if not args.dry_run:
         state.save(args.state)
+    if isinstance(publisher, GitHubReleasePublisher):
+        publisher.prune(datetime.now(UTC))
     print(
         f"candidatos={summary.candidates} entregues={summary.delivered} falhados={summary.failed}"
     )

@@ -50,7 +50,7 @@ class State:
         return {
             clip_id
             for clip_id, entry in self._clips.items()
-            if entry["status"] in ("delivered", "failed")
+            if entry["status"] in ("delivered", "failed", "skipped")
         }
 
     def delivered_moments(self) -> list[Moment]:
@@ -81,6 +81,10 @@ class State:
         entry = self._entry(clip, now)
         entry["attempts"] += 1
         entry["status"] = "failed" if entry["attempts"] >= MAX_ATTEMPTS else "retry"
+
+    def record_skipped(self, clip: Clip, now: datetime) -> None:
+        """Clip que não interessa (por exemplo, de outro jogo): não voltar a olhar para ele."""
+        self._entry(clip, now)["status"] = "skipped"
 
     def prune(self, now: datetime, days: int = 14) -> None:
         limit = now - timedelta(days=days)

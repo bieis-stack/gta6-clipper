@@ -318,3 +318,32 @@ def test_stops_starting_clips_when_out_of_time():
     assert summary == RunSummary(candidates=3, delivered=1, failed=0)
     later = run(config(), state, FakeTwitch({"shroud": three_clips()}), publisher, now=NOW, process=fake_process)
     assert "mid" in publisher.published and later.failed == 0
+
+
+# --- fonte sem chaves: o jogo só se conhece consultando clip a clip ---
+
+
+class FakePublicTwitch(FakeTwitch):
+    def __init__(self, clips_by_login, games):
+        super().__init__(clips_by_login)
+        self.games = games
+        self.lookups = []
+
+    def resolve_game(self, c):
+        self.lookups.append(c.id)
+        game = self.games.get(c.id)
+        return None if game is None else replace(c, game_id=game)
+
+
+def test_unknown_games_are_resolved_and_other_games_remembered_as_skipped():
+    clips = [clip("gta", game=None, views=900), clip("irl", game=None, views=800)]
+    twitch = FakePublicTwitch({"shroud": clips}, {"gta": "123", "irl": "999"})
+    state, publisher = State(), FakePublisher()
+    summary = run(config(), state, twitch, publisher, now=NOW, process=fake_process)
+    assert publisher.published == ["gta"]
+    assert summary.delivered == 1
+    assert twitch.lookups == ["gta", "irl"]
+    # na execução seguinte o clip de outro jogo já não gasta uma consulta
+    twitch.lookups.clear()
+    run(config(), state, twitch, publisher, now=NOW, process=fake_process)
+    assert twitch.lookups == []

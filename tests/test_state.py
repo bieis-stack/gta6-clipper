@@ -84,3 +84,13 @@ def test_prune_drops_entries_older_than_14_days():
     s.record_delivered(clip("new"), NOW)
     s.prune(NOW)
     assert s.done_ids() == {"new"}
+
+
+def test_skipped_clips_are_done_but_neither_delivered_nor_moments(tmp_path):
+    s = State()
+    s.record_skipped(clip("other-game"), NOW)
+    s.save(tmp_path / "s.json")
+    again = State.load(tmp_path / "s.json")
+    assert again.done_ids() == {"other-game"}
+    assert again.delivered_today(NOW) == 0
+    assert again.delivered_moments() == []
