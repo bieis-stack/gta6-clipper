@@ -16,7 +16,6 @@ from pathlib import Path
 from clipper.config import ConfigError, load_config
 from clipper.pipeline import GameNotFound, process_clip, run
 from clipper.publishers.base import PublishError
-from clipper.publishers.github_release import GitHubReleasePublisher
 from clipper.publishers.local import LocalPublisher
 from clipper.publishers.telegram import TelegramPublisher
 from clipper.state import State, StateError
@@ -58,19 +57,15 @@ def _source():
     return PublicTwitch()
 
 
-def _destination():
+def _destination() -> TelegramPublisher | None:
+    """O Telegram, se estiver configurado. Sem ele não há entrega nenhuma:
+    o sistema nunca publica clips em sítios públicos."""
     telegram = _pair("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID")
     if telegram:
         log.info("destino: Telegram")
         return TelegramPublisher(*telegram)
-    token, repository = _env("GITHUB_TOKEN"), _env("GITHUB_REPOSITORY")
-    if token and repository:
-        log.info("destino: página Releases de %s", repository)
-        return GitHubReleasePublisher(token, repository)
-    raise MissingSecret(
-        "não há para onde enviar os clips: define TELEGRAM_BOT_TOKEN e TELEGRAM_CHAT_ID "
-        "(ou corre no GitHub Actions, que os publica na página Releases)"
-    )
+    log.warning("Telegram por configurar: só a vigiar, nenhum clip será editado nem entregue")
+    return None
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -101,7 +96,7 @@ def _run(args: argparse.Namespace) -> int:
         checkpoint = lambda: state.save(args.state)  # noqa: E731
     # Um ensaio mostra o que o sistema faria de raiz; nunca grava o estado.
     state = State() if args.dry_run else State.load(args.state)
-    if not args.dry_run:
+    if publisher is not None and not args.dry_run:
         publisher.check()
     started = time.monotonic()
 
@@ -120,11 +115,16 @@ def _run(args: argparse.Namespace) -> int:
         )
     if not args.dry_run:
         state.save(args.state)
-    if isinstance(publisher, GitHubReleasePublisher):
-        publisher.prune(datetime.now(UTC))
     print(
         f"candidatos={summary.candidates} entregues={summary.delivered} falhados={summary.failed}"
     )
+    if summary.waiting:
+        print(
+            f"erro: há {summary.waiting} clips prontos a entregar, mas o Telegram não está "
+            "configurado; guarda TELEGRAM_BOT_TOKEN e TELEGRAM_CHAT_ID nos Secrets do repositório",
+            file=sys.stderr,
+        )
+        return 1
     if summary.failed and not summary.delivered:
         # Sem isto, uma avaria total (download bloqueado, ffmpeg em falta) passava
         # despercebida: as execuções ficavam verdes e o Telegram apenas em silêncio.

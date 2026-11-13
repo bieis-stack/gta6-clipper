@@ -47,14 +47,12 @@ jobs:
 
       - name: Procurar, editar e entregar clips
         env:
-          # As quatro chaves são opcionais. Sem as da Twitch, os clips vêm das
-          # páginas públicas; sem as do Telegram, os vídeos são publicados na
-          # página Releases deste repositório, com o acesso da própria execução.
+          # Sem as chaves da Twitch, os clips vêm das páginas públicas. Sem as do
+          # Telegram, o sistema só vigia: não edita nem publica nada.
           TWITCH_CLIENT_ID: ${{ secrets.TWITCH_CLIENT_ID }}
           TWITCH_CLIENT_SECRET: ${{ secrets.TWITCH_CLIENT_SECRET }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          GITHUB_TOKEN: ${{ github.token }}
           GAME_NAME: ${{ inputs.game_name }}
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
@@ -72,29 +70,6 @@ jobs:
           path: out/
           if-no-files-found: warn
           retention-days: 3
-
-      # Fotogramas dos vídeos do ensaio, num ramo à parte ("ensaio"), para se
-      # poder ver o aspeto dos clips sem descarregar os vídeos inteiros.
-      - name: Guardar fotogramas do ensaio
-        if: ${{ inputs.dry_run }}
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          mkdir -p previews
-          for video in out/*.mp4; do
-            [ -e "$video" ] || continue
-            name=$(basename "$video" .mp4)
-            ffmpeg -v error -y -ss 1 -i "$video" -frames:v 1 -vf scale=405:720 "previews/${name}_1s.jpg"
-            ffmpeg -v error -y -ss 12 -i "$video" -frames:v 1 -vf scale=405:720 "previews/${name}_12s.jpg"
-            cp "out/${name}.txt" previews/ 2>/dev/null || true
-          done
-          if [ -z "$(ls previews)" ]; then exit 0; fi
-          cd previews
-          git init -q -b ensaio
-          git add -A
-          git -c user.name=clipper-bot -c user.email=clipper-bot@users.noreply.github.com \
-            commit -q -m "fotogramas do ensaio"
-          git push -q -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" ensaio
 
       # Corre mesmo que o passo anterior falhe ou seja interrompido: o que já
       # foi entregue fica registado e não volta a ser enviado.

@@ -4,21 +4,17 @@ Procura na Twitch os clips de GTA VI dos streamers que escolheres, edita-os em
 vertical (1080×1920, com facecam em cima, legendas, título e crédito) e
 entrega-os prontos a publicar no YouTube e no TikTok.
 
-Corre sozinho no GitHub Actions, de 15 em 15 minutos, sem custos e sem
-nenhuma chave obrigatória.
+Corre sozinho no GitHub Actions, de 15 em 15 minutos, sem custos.
 
 ## Onde aparecem os clips
 
-- **Sem configurar nada:** na página **Releases** do repositório
-  (<https://github.com/bieis-stack/gta6-clipper/releases>). Cada clip é uma
-  entrada com o vídeo para descarregar, o título e a descrição prontos a
-  copiar. As entradas com mais de 7 dias são apagadas sozinhas.
-- **Com o bot do Telegram configurado (opcional):** no teu Telegram, em duas
-  mensagens: o vídeo com o título, e a descrição num bloco que se copia com
-  um toque. É mais prático para publicar a partir do telemóvel.
+Só no teu Telegram, em duas mensagens por clip: o vídeo com o título, e a
+descrição num bloco que se copia com um toque. Os clips nunca são publicados
+em sítios públicos.
 
-O repositório é público, por isso a página Releases também é: qualquer pessoa
-com a ligação vê os clips.
+Enquanto o bot do Telegram não estiver configurado (passo 3), o sistema só
+vigia: não edita nem gasta clips. Se aparecerem clips bons nesse período, a
+execução falha e o GitHub manda-te um email a lembrar de configurar o bot.
 
 ## Como funciona
 
@@ -28,12 +24,12 @@ com a ligação vê os clips.
    velocidade a que estão a ganhar visualizações e confirma, um a um, que são
    do jogo certo.
 3. Ignora clips repetidos do mesmo momento.
-4. Edita os melhores e entrega-os (ver acima).
+4. Edita os melhores e envia-os para o teu Telegram.
 
 ## Instalação
 
-Só o passo 1 é obrigatório, e já está feito. Os passos 2 a 4 são opcionais:
-melhoram o sistema, mas ele funciona sem eles.
+O passo 1 já está feito. Falta o passo 3 (bot do Telegram) e o passo 4 para
+as chaves dele. O passo 2 é opcional.
 
 ### 1. Repositório no GitHub
 
@@ -61,24 +57,29 @@ mais estável se a Twitch mudar as páginas.
 3. Abre a aplicação criada. Copia o **Client ID** e carrega em **New Secret**
    para obteres o **Client Secret**.
 
-### 3. Bot do Telegram (opcional)
+### 3. Bot do Telegram
 
-Sem ele, os clips aparecem na página Releases do repositório.
+Faz-se no telemóvel, em três minutos.
 
-1. No Telegram, fala com **@BotFather** e envia `/newbot`. Segue as
-   perguntas. No fim recebes o **token** do bot.
-2. Abre a conversa com o teu bot novo e envia-lhe uma mensagem qualquer.
-3. No navegador, abre `https://api.telegram.org/bot<TOKEN>/getUpdates`,
-   trocando `<TOKEN>` pelo teu token. Procura `"chat":{"id":` — o número a
-   seguir é o teu **chat id**.
+1. No Telegram, procura **@BotFather** (tem um visto azul) e carrega em
+   **Iniciar**.
+2. Envia `/newbot`. Ele pede um nome (por exemplo `Clipper GTA`) e depois um
+   nome de utilizador, que tem de acabar em `bot` (por exemplo
+   `clipper_gta_123_bot`).
+3. Ele responde com uma mensagem que contém o **token**, uma linha parecida
+   com `7123456789:AAH...`. Copia-a toda: é o `TELEGRAM_BOT_TOKEN`.
+4. Na mesma mensagem há uma ligação para o teu bot (`t.me/...`). Abre-a e
+   carrega em **Iniciar**. Sem isto, o bot não te consegue escrever.
+5. Procura **@userinfobot** e carrega em **Iniciar**. Ele responde com o teu
+   **Id**, um número: é o `TELEGRAM_CHAT_ID`.
 
-### 4. Chaves no GitHub (só se fizeste o passo 2 ou 3)
+### 4. Chaves no GitHub
 
 Em <https://github.com/bieis-stack/gta6-clipper/settings/secrets/actions>,
 carrega em **New repository secret** e cria cada chave com o nome exato.
 Têm de ficar no separador **Secrets** (não em *Variables*), na secção
-**Repository secrets**. Cada par é independente: podes pôr só as da Twitch,
-só as do Telegram, ou as quatro.
+**Repository secrets**. As do Telegram são as que fazem falta; as da Twitch
+só se fizeste o passo 2.
 
 | Nome | Valor |
 |---|---|
@@ -114,8 +115,8 @@ Em **Actions → Clipper → Run workflow**:
   lista, por exemplo `Minecraft`.
 
 Quando terminar, os vídeos ficam em **Artifacts → clips-de-ensaio**, na página
-dessa execução, e há fotogramas de cada vídeo no ramo `ensaio` do
-repositório. Um ensaio começa sempre do zero: ignora os clips já tratados.
+dessa execução, durante 3 dias. Um ensaio começa sempre do zero: ignora os
+clips já tratados.
 
 Para testar a entrega a sério, repete sem marcar **dry_run**.
 

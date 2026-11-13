@@ -35,6 +35,7 @@ class RunSummary:
     candidates: int
     delivered: int
     failed: int
+    waiting: int = 0  # escolhidos mas não tratados, por não haver destino
 
 
 def process_clip(
@@ -90,7 +91,7 @@ def run(
     config: Config,
     state: State,
     twitch: TwitchClient,
-    publisher: Publisher,
+    publisher: Publisher | None,
     *,
     now: datetime,
     process: Callable[[Clip, Streamer], RenderedClip],
@@ -99,7 +100,8 @@ def run(
 ) -> RunSummary:
     """`checkpoint` grava o estado antes e depois de cada clip: assim uma
     execução interrompida a meio não reenvia o que já entregou.
-    `out_of_time` diz se já não há tempo para começar mais um clip."""
+    `out_of_time` diz se já não há tempo para começar mais um clip.
+    Sem `publisher`, só conta os clips que entregaria, sem os editar nem gastar."""
     state.prune(now)
     if not config.streamers:
         log.warning("nenhum streamer configurado em config.yaml; nada a fazer")
@@ -149,6 +151,9 @@ def run(
         resolve=getattr(twitch, "resolve_game", None),
         on_reject=reject,
     )
+
+    if publisher is None:
+        return RunSummary(candidates=len(candidates), delivered=0, failed=0, waiting=len(chosen))
 
     delivered = failed = 0
     for clip in chosen:

@@ -60,10 +60,7 @@ que viola os termos das duas plataformas e põe em risco a conta dele.
 `bieis-stack/gta6-clipper`, de 15 em 15 minutos, à espera de clips de
 `Grand Theft Auto VI`. Lista de streamers já preenchida em `config.yaml`.
 
-**Funciona sem nenhuma chave.** O dono não conseguiu criar a aplicação na
-Twitch nem o bot do Telegram, e esta sessão não tem acesso aos Secrets do
-repositório. Por isso o sistema passou a ter dois modos, escolhidos sozinhos
-conforme as chaves existentes:
+**Chaves:** a Twitch é opcional; o Telegram é obrigatório para entregar.
 
 - **Fonte:** com `TWITCH_CLIENT_ID` e `TWITCH_CLIENT_SECRET`, a API oficial
   (`clipper/twitch.py`); sem elas, as páginas públicas via `yt-dlp`
@@ -71,27 +68,29 @@ conforme as chaves existentes:
   candidato bem colocado é aberto para o saber (`resolve_game`, no máximo 12
   consultas por execução), e os de outro jogo ficam registados como
   `skipped` com o jogo, para não gastar consultas na execução seguinte.
-- **Destino:** com `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID`, o Telegram;
-  sem elas, a página Releases do repositório
-  (`clipper/publishers/github_release.py`), com o `GITHUB_TOKEN` da própria
-  execução. Releases com mais de 7 dias são apagadas sozinhas.
+- **Destino:** só o Telegram (`TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID`).
+  Sem ele, o sistema só vigia: não edita nem gasta clips, e se houver clips
+  prontos a execução falha com instruções (o GitHub manda email ao dono).
+  **O dono escolheu explicitamente que nada seja publicado em sítios
+  públicos.** Uma versão anterior entregava na página Releases do
+  repositório (que é público); foi retirada a pedido dele. Não a reintroduzas
+  nem publiques clips noutro sítio público sem ele o pedir.
 
 **Verificado no GitHub real:** a listagem e o download públicos da Twitch
 (clips vêm em HEVC 1920×1080); a deteção do jogo clip a clip; um ensaio
 completo com clips reais de Minecraft do `caseoh_` (descarregar, facecam,
 legendas, montagem), cerca de 1 minuto e meio por clip de 60 segundos; as
-execuções agendadas a terminar sem erro e a gravar o estado. Os fotogramas
-do último ensaio estão no ramo `ensaio`.
+execuções agendadas a terminar sem erro e a gravar o estado.
 
-**Ainda não verificado:** uma entrega real na página Releases, e o Telegram
-(não há bot).
+**Ainda não verificado:** a entrega no Telegram (o bot ainda não existe).
 
 **Falta, por ordem:**
 
-1. Fazer uma execução real (sem `dry_run`) com um jogo que tenha clips, e
-   confirmar que aparecem na página Releases.
-2. Opcional: se o dono criar o bot do Telegram, guardar as duas chaves e
-   confirmar a entrega lá.
+1. O dono criar o bot do Telegram e guardar `TELEGRAM_BOT_TOKEN` e
+   `TELEGRAM_CHAT_ID` nos Secrets (passo 3 do `README.md`).
+2. Fazer uma execução real (sem `dry_run`) com um jogo que tenha clips nos
+   canais da lista (por exemplo `Minecraft`) e confirmar com ele que os
+   clips chegaram ao Telegram.
 3. A 19 de novembro, confirmar que chegam clips de GTA VI. O nome da
    categoria na Twitch tem de ser exatamente `Grand Theft Auto VI`; se for
    outro, corrigir `game_name` em `config.yaml`.

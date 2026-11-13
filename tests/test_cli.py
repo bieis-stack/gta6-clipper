@@ -4,7 +4,6 @@ from clipper import __main__ as cli
 from clipper.__main__ import main
 from clipper.pipeline import GameNotFound, RunSummary
 from clipper.publishers.base import PublishError
-from clipper.publishers.github_release import GitHubReleasePublisher
 from clipper.publishers.local import LocalPublisher
 from clipper.publishers.telegram import TelegramPublisher
 from clipper.twitch import TwitchAuthError, TwitchClient
@@ -20,7 +19,7 @@ SECRETS = {
 
 @pytest.fixture
 def env(monkeypatch):
-    for name in (*SECRETS, "GITHUB_TOKEN", "GITHUB_REPOSITORY"):
+    for name in SECRETS:
         monkeypatch.delenv(name, raising=False)
 
     def setenv(*names):
@@ -41,8 +40,6 @@ def telegram_check(monkeypatch):
             raise state["error"]
 
     monkeypatch.setattr(TelegramPublisher, "check", check)
-    monkeypatch.setattr(GitHubReleasePublisher, "check", check)
-    monkeypatch.setattr(GitHubReleasePublisher, "prune", lambda self, now: state.update(pruned=True))
     return state
 
 
@@ -212,27 +209,18 @@ def test_without_twitch_keys_the_public_listing_is_used(env, paths, fake_run):
     assert isinstance(fake_run.calls[0]["twitch"], PublicTwitch)
 
 
-def test_without_telegram_keys_clips_go_to_github_releases(env, paths, fake_run, monkeypatch, telegram_check):
-    monkeypatch.setenv("GITHUB_TOKEN", "ghs_value")
-    monkeypatch.setenv("GITHUB_REPOSITORY", "bieis-stack/gta6-clipper")
+def test_without_telegram_nothing_is_published_anywhere(env, paths, fake_run, telegram_check):
+    """Sem o bot, o sistema só vigia: nada de páginas públicas nem de clips gastos."""
     assert main(argv(paths)) == 0
-    assert isinstance(fake_run.calls[0]["publisher"], GitHubReleasePublisher)
-    assert telegram_check["calls"] == 1  # o destino é verificado antes de trabalhar
-    assert telegram_check.get("pruned") is True
+    assert fake_run.calls[0]["publisher"] is None
+    assert telegram_check["calls"] == 0
 
 
-def test_telegram_wins_over_github_releases_when_configured(env, paths, fake_run, monkeypatch):
-    env("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID")
-    monkeypatch.setenv("GITHUB_TOKEN", "ghs_value")
-    monkeypatch.setenv("GITHUB_REPOSITORY", "bieis-stack/gta6-clipper")
-    main(argv(paths))
-    assert isinstance(fake_run.calls[0]["publisher"], TelegramPublisher)
-
-
-def test_no_destination_at_all_is_an_error_that_says_what_to_do(env, paths, fake_run, capsys):
+def test_without_telegram_clips_waiting_make_the_run_fail_with_instructions(env, paths, fake_run, capsys):
+    fake_run.summary = RunSummary(candidates=3, delivered=0, failed=0, waiting=2)
     assert main(argv(paths)) == 1
-    assert "TELEGRAM_BOT_TOKEN" in capsys.readouterr().err
-    assert fake_run.calls == []
+    err = capsys.readouterr().err
+    assert "TELEGRAM_BOT_TOKEN" in err and "2 clips" in err
 
 
 @pytest.mark.parametrize(
