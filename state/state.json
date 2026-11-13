@@ -430,6 +430,16 @@
       "video_id": null,
       "vod_offset": null
     },
+    "MushyNurturingMomPeteZaroll-ZmpHi2BvyARaZiOz": {
+      "attempts": 0,
+      "broadcaster_id": "caseoh_",
+      "created_at": "2026-11-13T14:25:20+00:00",
+      "game": "scawy game",
+      "status": "skipped",
+      "updated_at": "2026-11-13T15:45:13.093946+00:00",
+      "video_id": null,
+      "vod_offset": null
+    },
     "NaiveDoubtfulBeeRuleFive-6WY9Ll1lxGmHAgFv": {
       "attempts": 0,
       "broadcaster_id": "zackrawrr",
@@ -527,6 +537,16 @@
       "game": "the streamer awards",
       "status": "skipped",
       "updated_at": "2026-11-13T08:17:25.974279+00:00",
+      "video_id": null,
+      "vod_offset": null
+    },
+    "ShyAmusedMilkRickroll-3sOYO2eYwQo7PcLt": {
+      "attempts": 0,
+      "broadcaster_id": "caseoh_",
+      "created_at": "2026-11-13T14:26:33+00:00",
+      "game": "scawy game",
+      "status": "skipped",
+      "updated_at": "2026-11-13T15:45:13.093946+00:00",
       "video_id": null,
       "vod_offset": null
     },
