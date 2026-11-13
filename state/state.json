@@ -300,6 +300,16 @@
       "video_id": null,
       "vod_offset": null
     },
+    "DiligentFantasticHerdCharlieBitMe-jEF20CFs8tr29s97": {
+      "attempts": 0,
+      "broadcaster_id": "caedrel",
+      "created_at": "2026-11-13T15:34:22+00:00",
+      "game": "league of legends",
+      "status": "skipped",
+      "updated_at": "2026-11-13T21:31:43.630983+00:00",
+      "video_id": null,
+      "vod_offset": null
+    },
     "DullRespectfulDragonflyAsianGlow-xhOEeeUaXAWQZnNQ": {
       "attempts": 0,
       "broadcaster_id": "caseoh_",
@@ -567,6 +577,16 @@
       "game": "league of legends",
       "status": "skipped",
       "updated_at": "2026-11-13T20:37:28.561126+00:00",
+      "video_id": null,
+      "vod_offset": null
+    },
+    "PoisedEnergeticLegCoolStoryBob-7SiikNmWWKiP5RLl": {
+      "attempts": 0,
+      "broadcaster_id": "hasanabi",
+      "created_at": "2026-11-13T20:15:23+00:00",
+      "game": "just chatting",
+      "status": "skipped",
+      "updated_at": "2026-11-13T21:31:43.630983+00:00",
       "video_id": null,
       "vod_offset": null
     },
