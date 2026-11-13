@@ -363,3 +363,16 @@ def test_clips_skipped_for_another_game_count_again_when_the_game_changes():
     publisher = FakePublisher()
     run(config(), state, twitch, publisher, now=NOW, process=fake_process)
     assert publisher.published == ["gta5"]
+
+
+def test_without_a_publisher_clips_are_only_counted_never_processed():
+    clips = [clip("gta", game=None, views=900), clip("irl", game=None, views=800)]
+    twitch = FakePublicTwitch({"shroud": clips}, {"gta": "123", "irl": "999"})
+    state = State()
+
+    def process(c, streamer):
+        raise AssertionError("não devia editar sem destino")
+
+    summary = run(config(), state, twitch, None, now=NOW, process=process)
+    assert summary == RunSummary(candidates=2, delivered=0, failed=0, waiting=1)
+    assert state.done_ids("123") == {"irl"}  # o de outro jogo fica registado; o bom fica à espera
