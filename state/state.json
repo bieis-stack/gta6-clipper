@@ -100,6 +100,16 @@
       "video_id": null,
       "vod_offset": null
     },
+    "CuriousRudeWatermelonTooSpicy-aA2NtbVP7v6-Ss_Z": {
+      "attempts": 0,
+      "broadcaster_id": "jynxzi",
+      "created_at": "2026-11-13T01:00:47+00:00",
+      "game": "",
+      "status": "skipped",
+      "updated_at": "2026-11-13T02:31:25.558301+00:00",
+      "video_id": null,
+      "vod_offset": null
+    },
     "DeafPiliableArmadilloDansGame-BSl2CkTPO123K4Ex": {
       "attempts": 0,
       "broadcaster_id": "caseoh_",
@@ -237,6 +247,16 @@
       "game": "league of legends",
       "status": "skipped",
       "updated_at": "2026-11-12T19:13:49.078941+00:00",
+      "video_id": null,
+      "vod_offset": null
+    },
+    "SpoopyBloodyPizzaBabyRage-Hoxr73IHOlrw2lMV": {
+      "attempts": 0,
+      "broadcaster_id": "theburntpeanut",
+      "created_at": "2026-11-12T23:32:53+00:00",
+      "game": "wardogs",
+      "status": "skipped",
+      "updated_at": "2026-11-13T02:31:25.558301+00:00",
       "video_id": null,
       "vod_offset": null
     },
