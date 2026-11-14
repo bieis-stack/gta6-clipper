@@ -68,3 +68,33 @@ def test_login_accepts_pasted_channel_links_and_handles(tmp_path, written):
 def test_login_that_cannot_be_a_twitch_channel_is_rejected_by_name(tmp_path, written):
     with pytest.raises(ConfigError, match="twitch"):
         load_config(write(tmp_path, f'game_name: "X"\nstreamers: [{{twitch: "{written}"}}]'))
+
+
+def test_hook_defaults(tmp_path):
+    path = tmp_path / "c.yaml"
+    path.write_text("game_name: X\n", encoding="utf-8")
+    hook = load_config(path).hook
+    assert hook.enabled is True and hook.seconds == 1.5 and hook.model == "gemini-flash-latest"
+
+
+def test_hook_section(tmp_path):
+    path = tmp_path / "c.yaml"
+    path.write_text("game_name: X\nhook: {enabled: false, seconds: 2, model: m}\n", encoding="utf-8")
+    hook = load_config(path).hook
+    assert (hook.enabled, hook.seconds, hook.model) == (False, 2, "m")
+
+
+@pytest.mark.parametrize(
+    "text, fragment",
+    [
+        ("hook: {colour: red}", "chave desconhecida"),
+        ("hook: {seconds: -1}", "seconds"),
+        ("hook: {enabled: 1}", "enabled"),
+        ("hook: {model: ''}", "model"),
+    ],
+)
+def test_hook_invalid(tmp_path, text, fragment):
+    path = tmp_path / "c.yaml"
+    path.write_text(f"game_name: X\n{text}\n", encoding="utf-8")
+    with pytest.raises(ConfigError, match=fragment):
+        load_config(path)

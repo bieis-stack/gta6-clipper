@@ -17,6 +17,8 @@ class LocalPublisher:
         try:
             self._out_dir.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(item.video_path, self._out_dir / f"{item.clip.id}.mp4")
+            if item.cover_path is not None:
+                shutil.copyfile(item.cover_path, self._out_dir / f"{item.clip.id}.jpg")
             (self._out_dir / f"{item.clip.id}.txt").write_text(
                 f"{item.title}\n\n{item.description}", encoding="utf-8"
             )

@@ -171,3 +171,42 @@ def test_missing_video_file_raises_publish_error(item):
     item.video_path.unlink()
     with pytest.raises(PublishError):
         TelegramPublisher(TOKEN, "999").publish(item)
+
+
+@pytest.fixture
+def item_with_cover(item, tmp_path):
+    cover = tmp_path / "Abc_cover.jpg"
+    cover.write_bytes(b"\xff\xd8 fake jpeg")
+    return RenderedClip(item.clip, item.video_path, "TITLE", "DESC", cover)
+
+
+@responses.activate
+def test_telegram_sends_cover_before_the_video(item_with_cover):
+    for method in ("sendPhoto", "sendVideo", "sendMessage"):
+        responses.add(responses.POST, f"{BASE}/{method}", json={"ok": True})
+    TelegramPublisher(TOKEN, "999").publish(item_with_cover)
+    assert [call.request.url for call in responses.calls] == [
+        f"{BASE}/sendPhoto",
+        f"{BASE}/sendVideo",
+        f"{BASE}/sendMessage",
+    ]
+    photo = multipart_fields(responses.calls[0].request)
+    assert photo["photo"] == b"\xff\xd8 fake jpeg" and photo["chat_id"] == b"999"
+
+
+@responses.activate
+def test_cover_failure_does_not_stop_the_video(item_with_cover, caplog):
+    responses.add(responses.POST, f"{BASE}/sendPhoto", status=400, json={"ok": False, "description": "x"})
+    responses.add(responses.POST, f"{BASE}/sendVideo", json={"ok": True})
+    responses.add(responses.POST, f"{BASE}/sendMessage", json={"ok": True})
+    with caplog.at_level(logging.WARNING):
+        TelegramPublisher(TOKEN, "999").publish(item_with_cover)
+    assert responses.calls[1].request.url == f"{BASE}/sendVideo"
+    assert "capa" in caplog.text
+    assert TOKEN not in caplog.text
+
+
+def test_local_publisher_copies_the_cover(item_with_cover, tmp_path):
+    out = tmp_path / "out"
+    LocalPublisher(out).publish(item_with_cover)
+    assert (out / "Abc.jpg").read_bytes() == b"\xff\xd8 fake jpeg"

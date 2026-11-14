@@ -8,13 +8,15 @@ import pytest
 
 from clipper import pipeline
 from clipper.captions import Word
-from clipper.config import Config, SelectionConfig
+from clipper.config import Config, HookConfig, SelectionConfig
+from clipper.layout import RenderError
 from clipper.media import probe
 from clipper.models import Rect, RenderedClip, Streamer
 from clipper.pipeline import GameNotFound, RunSummary, process_clip, run
 from clipper.publishers.base import PublishError
 from clipper.state import State
 from clipper.twitch import TwitchAuthError, TwitchError, User
+from clipper.writer import Texts, fallback_hook
 from tests.helpers import HOUR, NOW, T0, clip
 
 ASSETS = Path(__file__).parent.parent / "assets"
@@ -376,3 +378,65 @@ def test_without_a_publisher_clips_are_only_counted_never_processed():
     summary = run(config(), state, twitch, None, now=NOW, process=process)
     assert summary == RunSummary(candidates=2, delivered=0, failed=0, waiting=1)
     assert state.done_ids("123") == {"irl"}  # o de outro jogo fica registado; o bom fica à espera
+
+
+# --- gancho: flash-forward, texto, capa ---
+
+
+@pytest.fixture
+def long_offline(monkeypatch, make_video):
+    source = make_video(seconds=12)
+
+    def fake_download(url, dest_dir):
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        return Path(shutil.copy(source, dest_dir / "Abc.mp4"))
+
+    monkeypatch.setattr(pipeline, "download_clip", fake_download)
+    monkeypatch.setattr(pipeline, "transcribe", lambda video: [Word(0.2, 0.6, "hello")])
+    monkeypatch.setattr(pipeline, "detect_facecam", lambda video, model: None)
+    monkeypatch.setattr(pipeline, "choose_flash", lambda audio, rate, seconds: 6.0)
+
+
+def test_process_clip_opens_with_the_peak_and_the_written_hook(long_offline, tmp_path):
+    asked = {}
+
+    def write(transcript, clip_):
+        asked.update(transcript=transcript, clip=clip_.id)
+        return Texts(hook="HE STOLE A JET", title="He stole a jet 😭", source="gemini")
+
+    item = process_clip(clip("Abc"), SHROUD, config(), tmp_path / "work", ASSETS, write=write)
+    assert asked == {"transcript": "hello", "clip": "Abc"}
+    assert probe(item.video_path).duration == pytest.approx(13.5, abs=0.2)
+    assert item.title == "He stole a jet 😭 | Shroud #GTA6"
+    assert item.description.startswith("He stole a jet 😳")
+    assert item.cover_path is not None and item.cover_path.read_bytes()[:2] == b"\xff\xd8"
+    ass = (tmp_path / "work" / "Abc.ass").read_text(encoding="utf-8")
+    assert "HE STOLE A JET" in ass
+
+
+def test_process_clip_without_writer_uses_the_fixed_hook(long_offline, tmp_path):
+    item = process_clip(clip("Abc", title="wow"), SHROUD, config(), tmp_path / "work", ASSETS)
+    ass = (tmp_path / "work" / "Abc.ass").read_text(encoding="utf-8")
+    assert fallback_hook("Abc") in ass
+    assert item.title == "wow | Shroud #GTA6"
+
+
+def test_process_clip_with_hook_disabled_keeps_the_old_video(long_offline, tmp_path):
+    cfg = replace(config(), hook=HookConfig(enabled=False))
+    item = process_clip(clip("Abc", title="wow"), SHROUD, cfg, tmp_path / "work", ASSETS)
+    assert probe(item.video_path).duration == pytest.approx(12.0, abs=0.2)
+    assert "wow" in (tmp_path / "work" / "Abc.ass").read_text(encoding="utf-8")
+
+
+def test_process_clip_survives_a_broken_writer_and_cover(long_offline, tmp_path, monkeypatch, caplog):
+    def broken_write(transcript, clip_):
+        raise RuntimeError("boom")
+
+    def broken_cover(*args, **kwargs):
+        raise RenderError("no cover")
+
+    monkeypatch.setattr(pipeline, "render_cover", broken_cover)
+    with caplog.at_level(logging.WARNING):
+        item = process_clip(clip("Abc"), SHROUD, config(), tmp_path / "work", ASSETS, write=broken_write)
+    assert item.video_path.exists() and item.cover_path is None
+    assert fallback_hook("Abc") in (tmp_path / "work" / "Abc.ass").read_text(encoding="utf-8")

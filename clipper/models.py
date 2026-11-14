@@ -57,3 +57,4 @@ class RenderedClip:
     video_path: Path
     title: str
     description: str
+    cover_path: Path | None = None  # capa em JPG; None se não foi possível fazê-la

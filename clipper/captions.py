@@ -24,8 +24,8 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Title,{FONT},72,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,6,0,5,60,60,0,1
-Style: Caption,{FONT},84,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,6,0,5,60,60,0,1
+Style: Title,{FONT},112,&H0000FFFF,&H0000FFFF,&H1A000000,&H1A000000,0,0,0,0,100,100,0,0,3,16,0,5,60,60,0,1
+Style: Caption,{FONT},90,&H00FFFFFF,&H00FFFFFF,&H00000000,&H96000000,0,0,0,0,100,100,0,0,1,7,3,5,60,60,0,1
 Style: Credit,{FONT},36,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,3,0,5,60,60,0,1
 
 [Events]
@@ -45,6 +45,11 @@ class Cue:
     start: float
     end: float
     text: str
+    words: tuple[Word, ...] = ()  # vazio: mostrar o texto sem realce palavra a palavra
+
+
+HIGHLIGHT = "{\\c&H00FFFF&\\fscx112\\fscy112}"  # amarelo e ligeiramente maior
+POP_IN = "{\\fscx88\\fscy88\\t(0,90,\\fscx100\\fscy100)}"  # o grupo cresce ao aparecer
 
 
 _model = None
@@ -91,7 +96,7 @@ def transcribe(video: Path) -> list[Word]:
 
 
 def group_words(
-    words: list[Word], max_words: int = 4, max_gap: float = 0.6, max_chars: int = 22
+    words: list[Word], max_words: int = 3, max_gap: float = 0.6, max_chars: int = 20
 ) -> list[Cue]:
     groups: list[list[Word]] = []
     for word in words:
@@ -117,7 +122,7 @@ def group_words(
         end = max(group[-1].end, start + MIN_CUE_SECONDS)
         if index + 1 < len(groups):
             end = min(end, max(groups[index + 1][0].start, start))
-        cues.append(Cue(start, end, " ".join(w.text for w in group)))
+        cues.append(Cue(start, end, " ".join(w.text for w in group), tuple(group)))
     return cues
 
 
@@ -135,11 +140,28 @@ def _time(seconds: float) -> str:
     return f"{hours}:{minutes:02d}:{secs:02d}.{centis:02d}"
 
 
-def _event(start: float, end: float, style: str, y: int, text: str) -> str:
-    return (
-        f"Dialogue: 0,{_time(start)},{_time(end)},{style},,0,0,0,,"
-        f"{{\\pos(540,{y})}}{escape_ass(text)}\n"
-    )
+def _event(start: float, end: float, style: str, y: int, text: str, *, raw: bool = False) -> str:
+    body = text if raw else escape_ass(text)
+    return f"Dialogue: 0,{_time(start)},{_time(end)},{style},,0,0,0,,{{\\pos(540,{y})}}{body}\n"
+
+
+def _word_events(cue: Cue, offset: float, duration: float, y: int) -> list[str]:
+    """Um evento por palavra: o grupo inteiro, com a palavra dita em destaque."""
+    texts = [escape_ass(word.text) for word in cue.words]
+    events = []
+    for index, word in enumerate(cue.words):
+        start = cue.start if index == 0 else word.start
+        end = cue.words[index + 1].start if index + 1 < len(cue.words) else cue.end
+        start, end = start + offset, min(max(end, start) + offset, duration)
+        if start >= duration or end <= start:
+            continue
+        parts = [
+            f"{HIGHLIGHT}{text}{{\\r}}" if position == index else text
+            for position, text in enumerate(texts)
+        ]
+        prefix = POP_IN if index == 0 else ""
+        events.append(_event(start, end, "Caption", y, prefix + " ".join(parts), raw=True))
+    return events
 
 
 def build_ass(
@@ -151,13 +173,20 @@ def build_ass(
     caption_y: int,
     credit_y: int,
     duration: float,
+    offset: float = 0.0,
 ) -> str:
+    """Legendas do vídeo final. `offset` atrasa as legendas (flash-forward à frente do clip)."""
     events = []
     if escape_ass(title):
         events.append(_event(0, min(TITLE_SECONDS, duration), "Title", title_y, title))
     if escape_ass(credit):
         events.append(_event(0, duration, "Credit", credit_y, credit))
     for cue in cues:
-        if cue.start < duration and escape_ass(cue.text):
-            events.append(_event(cue.start, min(cue.end, duration), "Caption", caption_y, cue.text))
+        if not escape_ass(cue.text):
+            continue
+        if cue.words and all(escape_ass(word.text) for word in cue.words):
+            events.extend(_word_events(cue, offset, duration, caption_y))
+        elif cue.start + offset < duration:
+            end = min(cue.end + offset, duration)
+            events.append(_event(cue.start + offset, end, "Caption", caption_y, cue.text))
     return _HEADER + "".join(events)

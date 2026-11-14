@@ -1,7 +1,7 @@
 ---
 tipo: projeto
 projeto: Clipper GTA VI
-estado: a funcionar, falta o bot do Telegram
+estado: a funcionar com gancho e capa; faltam as chaves Gemini e Pexels
 atualizado: 2026-11-14
 repositorio: https://github.com/bieis-stack/gta6-clipper
 tags: [projeto, gta6, clips, automacao]
@@ -23,9 +23,15 @@ no YouTube Shorts e no TikTok. Os streamers deram autorização para clipar.
 - [x] Código no GitHub, agendamento ligado e a correr
 - [x] Lista de 10 streamers preenchida
 - [x] Ensaio completo com clips reais (Minecraft do CaseOh): vídeos bons
-- [ ] **Criar o bot do Telegram e guardar as duas chaves no GitHub**
-- [ ] Entrega de teste no Telegram
-- [ ] Apagar o ramo `ensaio` no GitHub (tem fotogramas de uma stream)
+- [x] Bot do Telegram criado (@gtaVIclipperobot, «Clipper GTA») e chaves guardadas no GitHub
+- [x] Entrega de teste no Telegram (14/11: 2 clips do hasanabi recebidos)
+- [x] Ramo `ensaio` apagado no GitHub
+- [x] Gancho (momento mais forte primeiro + frase da IA), legendas palavra a palavra e capa
+- [x] Kit do canal (Wasted Clips): nome, bio, avatar, banner
+- [x] Canal de factos com o MoneyPrinterTurbo (2 vídeos por dia)
+- [ ] Criar a chave grátis do Gemini e guardá-la como `GEMINI_API_KEY`
+- [ ] Criar a chave grátis do Pexels e guardá-la como `PEXELS_API_KEY`
+- [ ] Abrir os canais no YouTube e no TikTok (ver `docs/canal/` no repositório)
 - [ ] A 19/11: confirmar que chegam clips de GTA VI
 
 ## Como funciona
@@ -35,9 +41,12 @@ no YouTube Shorts e no TikTok. Os streamers deram autorização para clipar.
 2. Filtra por duração (15 a 60 s) e visualizações (30 ou mais), ordena pela
    velocidade a que ganham visualizações e confirma que são de GTA VI.
 3. Ignora clips repetidos do mesmo momento.
-4. Edita: 1080×1920, facecam em cima e jogo em baixo (deteção automática),
-   legendas queimadas, título nos primeiros 3 s, crédito ao streamer.
-5. Envia para o Telegram: o vídeo com o título, e a descrição pronta a copiar.
+4. Edita: 1080×1920, facecam em cima e jogo em baixo (deteção automática).
+   **Gancho:** o vídeo abre com o momento mais alto do clip (1,5 s) e uma
+   frase curta em amarelo escrita pela IA; depois recomeça o clip. Legendas
+   de 3 palavras com a palavra dita a amarelo. Crédito ao streamer.
+5. Envia para o Telegram: a capa, o vídeo com o título (escrito pela IA), e
+   a descrição pronta a copiar (abre com o gancho e tem o #streamer).
 
 Limites: 2 clips por execução, 5 por dia (dia em UTC). Muda-se em
 `config.yaml`.
@@ -68,23 +77,28 @@ Limites: 2 clips por execução, 5 por dia (dia em UTC). Muda-se em
 
 ## Falta fazer
 
-### Bot do Telegram (3 minutos, no telemóvel)
+### Chave do Gemini (2 minutos, grátis)
 
-1. Procurar **@BotFather**, carregar em **Iniciar**, enviar `/newbot`.
-2. Dar um nome e um nome de utilizador que acabe em `bot`.
-3. Copiar o **token** que ele devolve.
-4. Abrir a ligação `t.me/...` do bot novo e carregar em **Iniciar**.
-5. Procurar **@userinfobot**, carregar em **Iniciar** e copiar o **Id**.
-6. Guardar em
+1. Entrar em <https://aistudio.google.com/app/apikey> com a conta Google.
+2. **Create API key** e copiar.
+3. Guardar em
    <https://github.com/bieis-stack/gta6-clipper/settings/secrets/actions>
-   (separador **Secrets**, **Repository secrets**):
-   - `TELEGRAM_BOT_TOKEN` = o token
-   - `TELEGRAM_CHAT_ID` = o Id
+   como `GEMINI_API_KEY`.
 
-### Apagar o ramo `ensaio`
+Sem ela os ganchos continuam a sair (Pollinations ou frases fixas), mas o
+canal de factos não funciona.
 
-<https://github.com/bieis-stack/gta6-clipper/branches> → caixote do lixo ao
-lado de `ensaio`.
+### Chave do Pexels (2 minutos, grátis)
+
+1. Criar conta em <https://www.pexels.com/api/> e pedir a chave.
+2. Guardar no mesmo sítio como `PEXELS_API_KEY`.
+
+### Canais
+
+Tudo em `docs/canal/` no repositório: nome **Wasted Clips**, bio, avatar,
+banner e como publicar cada vídeo. O canal de factos (sugestão: **Real Vice
+City**) tem de ser **separado**: o YouTube não paga a canais de vídeos em
+massa feitos com IA, e avalia o canal inteiro.
 
 ## Fases seguintes
 

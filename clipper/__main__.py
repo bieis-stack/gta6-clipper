@@ -13,14 +13,18 @@ from datetime import UTC, datetime
 from functools import partial
 from pathlib import Path
 
-from clipper.config import ConfigError, load_config
-from clipper.pipeline import GameNotFound, process_clip, run
+import requests
+
+from clipper.config import Config, ConfigError, load_config
+from clipper.models import Clip
+from clipper.pipeline import GameNotFound, Writer, process_clip, run
 from clipper.publishers.base import PublishError
 from clipper.publishers.local import LocalPublisher
 from clipper.publishers.telegram import TelegramPublisher
 from clipper.state import State, StateError
 from clipper.twitch import TwitchClient, TwitchError
 from clipper.twitch_public import PublicTwitch
+from clipper.writer import Texts, write_texts
 
 log = logging.getLogger(__name__)
 
@@ -68,6 +72,27 @@ def _destination() -> TelegramPublisher | None:
     return None
 
 
+def _writer(config: Config) -> Writer:
+    """Quem escreve o gancho: o Gemini com GEMINI_API_KEY, senão o Pollinations."""
+    key = _env("GEMINI_API_KEY")
+    log.info("gancho: %s", "Gemini" if key else "Pollinations (sem GEMINI_API_KEY)")
+    session = requests.Session()
+
+    def write(transcript: str, clip: Clip) -> Texts:
+        return write_texts(
+            transcript=transcript,
+            clip_title=clip.title,
+            streamer=clip.broadcaster_name,
+            game=config.game_name,
+            clip_id=clip.id,
+            api_key=key,
+            model=config.hook.model,
+            session=session,
+        )
+
+    return write
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="clipper", description="Clips da Twitch para o Telegram")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -102,7 +127,13 @@ def _run(args: argparse.Namespace) -> int:
 
     with tempfile.TemporaryDirectory(prefix="clipper-") as temporary:
         work_dir = args.work or Path(temporary)
-        process = partial(process_clip, config=config, work_dir=work_dir, assets_dir=ASSETS)
+        process = partial(
+            process_clip,
+            config=config,
+            work_dir=work_dir,
+            assets_dir=ASSETS,
+            write=_writer(config) if config.hook.enabled else None,
+        )
         summary = run(
             config,
             state,

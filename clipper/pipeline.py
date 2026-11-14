@@ -8,11 +8,12 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from clipper.captions import build_ass, group_words, transcribe
+from clipper.captions import SAMPLE_RATE, Word, build_ass, group_words, load_audio, transcribe
 from clipper.config import Config
 from clipper.download import download_clip
 from clipper.facecam import clamp_region, detect_facecam
-from clipper.layout import render, text_positions
+from clipper.hook import choose_flash
+from clipper.layout import RenderError, render, render_cover, text_positions
 from clipper.media import probe
 from clipper.metadata import build_description, build_title
 from clipper.models import Clip, RenderedClip, Streamer
@@ -20,8 +21,12 @@ from clipper.publishers.base import Publisher
 from clipper.selection import eligible, select
 from clipper.state import State
 from clipper.twitch import TwitchAuthError, TwitchClient, TwitchError
+from clipper.writer import Texts, fallback_hook
 
 log = logging.getLogger(__name__)
+
+# Recebe a transcrição e o clip; devolve o gancho e o título.
+Writer = Callable[[str, Clip], Texts]
 
 FACE_MODEL = Path("models") / "face_detection_yunet_2023mar.onnx"
 
@@ -39,7 +44,13 @@ class RunSummary:
 
 
 def process_clip(
-    clip: Clip, streamer: Streamer, config: Config, work_dir: Path, assets_dir: Path
+    clip: Clip,
+    streamer: Streamer,
+    config: Config,
+    work_dir: Path,
+    assets_dir: Path,
+    *,
+    write: Writer | None = None,
 ) -> RenderedClip:
     """Descarrega um clip e devolve-o editado em vertical, com os textos de publicação."""
     work_dir, assets_dir = Path(work_dir), Path(assets_dir)
@@ -64,27 +75,79 @@ def process_clip(
         log.warning("clip %s sem legendas: a transcrição falhou (%s)", clip.id, error)
         words = []
 
+    hook = config.hook
+    flash = _flash(source, info, hook.seconds, clip.id) if hook.enabled else None
+    texts = _texts(words, clip, write) if hook.enabled else None
+    on_screen = texts.hook if texts else clip.title
+    offset = flash[1] if flash else 0.0
+    positions = text_positions(facecam is not None)
+    credit = f"twitch.tv/{clip.broadcaster_login}"
+    fonts_dir = assets_dir / "fonts"
+
     ass_path = work_dir / f"{clip.id}.ass"
     ass_path.write_text(
         build_ass(
             group_words(words),
-            title=clip.title,
-            credit=f"twitch.tv/{clip.broadcaster_login}",
-            duration=info.duration,
-            **text_positions(facecam is not None),
+            title=on_screen,
+            credit=credit,
+            duration=info.duration + offset,
+            offset=offset,
+            **positions,
         ),
         encoding="utf-8",
     )
     final = work_dir / f"{clip.id}_final.mp4"
-    render(source, final, facecam=facecam, ass_path=ass_path, fonts_dir=assets_dir / "fonts")
+    render(source, final, facecam=facecam, ass_path=ass_path, fonts_dir=fonts_dir, flash=flash)
+
+    cover = None
+    if texts is not None:
+        moment = flash[0] + flash[1] / 2 if flash else info.duration * 0.4
+        cover_ass = work_dir / f"{clip.id}_cover.ass"
+        cover_ass.write_text(
+            build_ass([], title=on_screen, credit=credit, duration=1.0, **positions),
+            encoding="utf-8",
+        )
+        cover = work_dir / f"{clip.id}_cover.jpg"
+        try:
+            render_cover(
+                source, cover, facecam=facecam, ass_path=cover_ass, fonts_dir=fonts_dir, at=moment
+            )
+        except RenderError as error:
+            log.warning("clip %s sem capa: %s", clip.id, error)
+            cover = None
 
     tag = config.hashtags[0] if config.hashtags else ""
+    title = texts.title if texts and texts.title else clip.title
     return RenderedClip(
         clip=clip,
         video_path=final,
-        title=build_title(clip.title, clip.broadcaster_name, tag),
-        description=build_description(clip, config.hashtags),
+        title=build_title(title, clip.broadcaster_name, tag),
+        description=build_description(clip, config.hashtags, hook=texts.hook if texts else None),
+        cover_path=cover,
     )
+
+
+def _flash(source: Path, info, seconds: float, clip_id: str) -> tuple[float, float] | None:
+    """O troço mais forte do clip, para abrir o vídeo com ele. None se não houver."""
+    if seconds <= 0 or not info.has_audio:
+        return None
+    try:
+        start = choose_flash(load_audio(source), SAMPLE_RATE, seconds=seconds)
+    except Exception as error:  # sem flash-forward o clip continua bom
+        log.warning("clip %s sem flash-forward: %s", clip_id, error)
+        return None
+    return (start, seconds) if start is not None else None
+
+
+def _texts(words: list[Word], clip: Clip, write: Writer | None) -> Texts:
+    if write is not None:
+        try:
+            texts = write(" ".join(word.text.strip() for word in words), clip)
+            log.info("gancho do clip %s escrito por %s: %s", clip.id, texts.source, texts.hook)
+            return texts
+        except Exception as error:  # o gancho nunca impede a entrega
+            log.warning("clip %s com gancho fixo: %s", clip.id, error)
+    return Texts(hook=fallback_hook(clip.id), title=None, source="fallback")
 
 
 def run(

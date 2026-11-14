@@ -29,6 +29,14 @@ selection:
   max_per_run: 2        # clips entregues por execução
   max_per_day: 5        # clips entregues por dia (UTC)
 
+# Gancho: o vídeo abre com o momento mais forte do clip (pico de volume) e
+# com uma frase curta em cima. A frase é escrita pelo Gemini (segredo
+# GEMINI_API_KEY, gratuito), senão pelo Pollinations, senão vem de uma lista.
+hook:
+  enabled: true
+  seconds: 1.5                  # duração do flash-forward (0 = sem flash-forward)
+  model: gemini-flash-latest    # modelo gratuito do Gemini
+
 metadata:
   # A primeira hashtag vai também no título.
   hashtags: ["#GTA6", "#GTAVI", "#shorts"]

@@ -56,6 +56,12 @@ class TelegramPublisher:
             raise PublishError(f"Telegram mal configurado: {hint} ({reason})") from None
 
     def publish(self, item: RenderedClip) -> None:
+        if item.cover_path is not None:
+            try:
+                self._send_cover(item)
+            except (PublishError, _OutcomeUnknown) as error:
+                # A capa é um extra: sem ela, o vídeo segue na mesma.
+                log.warning("capa de %s não enviada: %s", item.clip.id, error)
         uncertain = False
         try:
             self._send_video(item)
@@ -68,6 +74,18 @@ class TelegramPublisher:
         except (PublishError, _OutcomeUnknown) as error:
             # O vídeo já chegou: repetir o envio duplicava-o no chat.
             log.warning("vídeo de %s entregue, mas a descrição falhou: %s", item.clip.id, error)
+
+    def _send_cover(self, item: RenderedClip) -> None:
+        try:
+            with open(item.cover_path, "rb") as cover:
+                self._call(
+                    "sendPhoto",
+                    MESSAGE_TIMEOUT * 2,
+                    data={"chat_id": self._chat_id, "caption": "🖼️ Capa (thumbnail)"},
+                    files={"photo": (f"{item.clip.id}.jpg", cover, "image/jpeg")},
+                )
+        except OSError as error:
+            raise PublishError(f"capa de {item.clip.id} ilegível: {error.strerror}") from None
 
     def _send_video(self, item: RenderedClip) -> None:
         try:

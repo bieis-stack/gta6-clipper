@@ -1,0 +1,73 @@
+name: Factos (MoneyPrinterTurbo)
+
+# Dois vídeos por dia de factos sobre Miami e a Flórida, entregues no Telegram.
+# Precisa dos Secrets GEMINI_API_KEY, PEXELS_API_KEY, TELEGRAM_BOT_TOKEN e
+# TELEGRAM_CHAT_ID. Sem eles, falha e o GitHub avisa por email.
+on:
+  schedule:
+    - cron: "0 15 * * *"
+    - cron: "0 20 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: faceless
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  video:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      MPT_HOME: ${{ github.workspace }}/../mpt-home
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar ffmpeg e o MoneyPrinterTurbo
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          pip install -q mpt requests pyyaml
+
+      - name: Escolher o tema
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+        run: python faceless/plan.py faceless_out
+
+      - name: Fazer o vídeo
+        run: |
+          SUBJECT="$(python -c 'import json;print(json.load(open("faceless_out/plan.json"))["subject"])')"
+          mpt cli \
+            --video-subject "$SUBJECT" \
+            --video-language en-US \
+            --paragraph-number 1 \
+            --video-script-prompt "Open with one sentence that makes viewers need to keep watching. Short, punchy sentences. Only state well-known, verifiable facts; if unsure, leave it out. End with a question that invites comments. About 30 seconds when read aloud." \
+            --video-aspect 9:16 \
+            --video-count 1 \
+            --voice-name en-US-ChristopherNeural-Male \
+            --bgm-type none \
+            --subtitle-display-mode word_by_word \
+            --subtitle-animation pop_spring \
+            --subtitle-position bottom
+
+      - name: Entregar no Telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python faceless/finish.py faceless_out
+
+      - name: Guardar os temas feitos
+        run: |
+          git config user.name "clipper-bot"
+          git config user.email "clipper-bot@users.noreply.github.com"
+          git add faceless/state.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -q -m "faceless: tema feito [skip ci]"
+          git pull -q --rebase
+          git push -q

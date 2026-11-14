@@ -53,6 +53,8 @@ jobs:
           TWITCH_CLIENT_SECRET: ${{ secrets.TWITCH_CLIENT_SECRET }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # Opcional: sem ela, o gancho é escrito pelo Pollinations ou por uma lista fixa.
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GAME_NAME: ${{ inputs.game_name }}
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
