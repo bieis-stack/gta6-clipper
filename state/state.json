@@ -381,12 +381,12 @@
       "vod_offset": null
     },
     "FineCrazyKiwiTheRinger-lKbK1TsaDuSgBhzu": {
-      "attempts": 0,
+      "attempts": 1,
       "broadcaster_id": "hasanabi",
       "created_at": "2026-11-13T21:30:05+00:00",
       "game": "just chatting",
-      "status": "skipped",
-      "updated_at": "2026-11-14T00:07:59.859900+00:00",
+      "status": "delivered",
+      "updated_at": "2026-11-14T00:23:34.253795+00:00",
       "video_id": null,
       "vod_offset": null
     },
@@ -601,12 +601,12 @@
       "vod_offset": null
     },
     "PoisedEnergeticLegCoolStoryBob-7SiikNmWWKiP5RLl": {
-      "attempts": 0,
+      "attempts": 1,
       "broadcaster_id": "hasanabi",
       "created_at": "2026-11-13T20:15:23+00:00",
       "game": "just chatting",
-      "status": "skipped",
-      "updated_at": "2026-11-13T21:31:43.630983+00:00",
+      "status": "delivered",
+      "updated_at": "2026-11-14T00:23:34.253795+00:00",
       "video_id": null,
       "vod_offset": null
     },
