@@ -8,6 +8,7 @@ cada clip: isso descobre-se depois, um clip de cada vez, com `resolve_game`.
 from __future__ import annotations
 
 import logging
+import time
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
@@ -19,6 +20,8 @@ from clipper.twitch import TwitchError, User
 log = logging.getLogger(__name__)
 
 CLIPS_PER_CHANNEL = 50
+LISTING_ATTEMPTS = 3
+RETRY_PAUSE = 2  # segundos
 _OPTIONS = {"quiet": True, "no_warnings": True, "noprogress": True, "socket_timeout": 30}
 
 
@@ -39,11 +42,19 @@ class PublicTwitch:
         span = "24hr" if ended_at - started_at <= timedelta(hours=24) else "7d"
         url = f"https://www.twitch.tv/{user.login}/clips?range={span}"
         options = {**_OPTIONS, "extract_flat": True, "playlistend": CLIPS_PER_CHANNEL}
-        try:
-            with yt_dlp.YoutubeDL(options) as ydl:
-                entries = list((ydl.extract_info(url, download=False) or {}).get("entries") or [])
-        except Exception as error:
-            raise TwitchError(f"não foi possível listar os clips de {user.login}: {error}") from None
+        # A página pública devolve às vezes uma lista vazia a um canal que tem
+        # dezenas de clips; repetir resolve quase sempre.
+        for attempt in range(LISTING_ATTEMPTS):
+            if attempt:
+                time.sleep(RETRY_PAUSE)
+            try:
+                with yt_dlp.YoutubeDL(options) as ydl:
+                    info = ydl.extract_info(url, download=False) or {}
+            except Exception as error:
+                raise TwitchError(f"não foi possível listar os clips de {user.login}: {error}") from None
+            entries = list(info.get("entries") or [])
+            if entries:
+                break
         clips = (self._clip(entry, user) for entry in entries)
         return [clip for clip in clips if clip and started_at <= clip.created_at <= ended_at]
 

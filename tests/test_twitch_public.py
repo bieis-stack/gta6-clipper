@@ -44,6 +44,8 @@ class FakeYDL:
     def extract_info(self, url, download=True):
         FakeYDL.calls.append((url, dict(self.options), download))
         result = FakeYDL.results[url]
+        if isinstance(result, list):  # respostas sucessivas ao mesmo pedido
+            result = result.pop(0) if len(result) > 1 else result[0]
         if isinstance(result, Exception):
             raise result
         return result
@@ -119,9 +121,19 @@ def test_listing_failure_is_a_twitch_error(ydl, error):
         PublicTwitch().get_clips(KAI, START, END)
 
 
-def test_empty_listing_is_no_clips(ydl):
+def test_empty_listing_is_no_clips(ydl, monkeypatch):
+    monkeypatch.setattr("clipper.twitch_public.time.sleep", lambda seconds: None)
     ydl.results = {"https://www.twitch.tv/kaicenat/clips?range=24hr": {"entries": []}}
     assert PublicTwitch().get_clips(KAI, START, END) == []
+    assert len(ydl.calls) == 3  # uma lista vazia pode ser uma falha passageira
+
+
+def test_empty_listing_is_retried(ydl, monkeypatch):
+    monkeypatch.setattr("clipper.twitch_public.time.sleep", lambda seconds: None)
+    url = "https://www.twitch.tv/kaicenat/clips?range=24hr"
+    ydl.results = {url: [{"entries": []}, {"entries": [entry()]}]}
+    assert [clip.id for clip in PublicTwitch().get_clips(KAI, START, END)] == [SLUG]
+    assert len(ydl.calls) == 2
 
 
 def a_clip(ydl):
