@@ -54,7 +54,7 @@ as auditorias exigem mostrar a integração a funcionar. Foi essa a razão do
 desenho híbrido; não tentes automatizar a publicação por automação de browser,
 que viola os termos das duas plataformas e põe em risco a conta dele.
 
-## Em que ponto está (12 de novembro de 2026)
+## Em que ponto está (14 de novembro de 2026)
 
 **O sistema está ligado e a correr sozinho** no GitHub Actions do repositório
 `bieis-stack/gta6-clipper`, de 15 em 15 minutos, à espera de clips de
@@ -82,18 +82,38 @@ completo com clips reais de Minecraft do `caseoh_` (descarregar, facecam,
 legendas, montagem), cerca de 1 minuto e meio por clip de 60 segundos; as
 execuções agendadas a terminar sem erro e a gravar o estado.
 
-**Ainda não verificado:** a entrega no Telegram (o bot ainda não existe).
+**Entrega no Telegram verificada a 14/11:** bot `@gtaVIclipperobot`
+("Clipper GTA"); a execução #41 com `Just Chatting` entregou 2 clips do
+hasanabi e o dono confirmou que chegaram. O ramo `ensaio` foi apagado.
 
-**Falta, por ordem:**
+**Gancho, legendas e capa (14/11)**, spec em
+`docs/superpowers/specs/2026-11-14-hook-design.md`: o vídeo abre com o pico de
+volume do clip (1,5 s, `clipper/hook.py`); a frase do gancho e o título são
+escritos pelo Gemini (`GEMINI_API_KEY`, opcional) ou pelo Pollinations, com
+reserva numa lista fixa (`clipper/writer.py`); legendas de 3 palavras com a
+palavra dita a amarelo; capa JPG enviada antes do vídeo. Qualquer falha
+nestas partes volta ao comportamento antigo.
 
-1. O dono criar o bot do Telegram e guardar `TELEGRAM_BOT_TOKEN` e
-   `TELEGRAM_CHAT_ID` nos Secrets (passo 3 do `README.md`).
-2. Fazer uma execução real (sem `dry_run`) com um jogo que tenha clips nos
-   canais da lista (por exemplo `Minecraft`) e confirmar com ele que os
-   clips chegaram ao Telegram.
-3. A 19 de novembro, confirmar que chegam clips de GTA VI. O nome da
+**Canal de factos (14/11):** `faceless/` e o workflow `faceless.yml` correm o
+MoneyPrinterTurbo no Actions, 2 vídeos por dia, nicho "Real-life Vice City".
+Precisa de `GEMINI_API_KEY` e `PEXELS_API_KEY`. Não foi corrido localmente (a
+instalação foi bloqueada pelas permissões da sessão): a primeira verificação
+é a primeira execução no GitHub.
+
+**Kit do canal:** `docs/canal/` (nome Wasted Clips, bio, avatar, banner,
+como publicar).
+
+**Acesso a partir do portátil do dono:** o `git` global está noutra conta
+(`gabrielpinacarvalho09-hue`). O clone em `C:/Users/gabri/gta6-clipper` usa o
+endereço `https://bieis-stack@github.com/...` para o Git Credential Manager
+pedir a conta certa. O `gh` não está instalado.
+
+**Falta:**
+
+1. A 19 de novembro, confirmar que chegam clips de GTA VI. O nome da
    categoria na Twitch tem de ser exatamente `Grand Theft Auto VI`; se for
    outro, corrigir `game_name` em `config.yaml`.
+2. Ver a primeira execução do workflow de factos e corrigir o que falhar.
 
 A lista de streamers foi escolhida a partir das classificações de audiência
 de 2026, porque o dono disse que os dez mais populares o autorizaram. Inclui

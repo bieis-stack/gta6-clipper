@@ -8,8 +8,8 @@ Corre sozinho no GitHub Actions, de 15 em 15 minutos, sem custos.
 
 ## Onde aparecem os clips
 
-Só no teu Telegram, em duas mensagens por clip: o vídeo com o título, e a
-descrição num bloco que se copia com um toque. Os clips nunca são publicados
+Só no teu Telegram, em três mensagens por clip: a capa (thumbnail), o vídeo
+com o título, e a descrição num bloco que se copia com um toque. Os clips nunca são publicados
 em sítios públicos.
 
 Enquanto o bot do Telegram não estiver configurado (passo 3), o sistema só
@@ -24,7 +24,10 @@ execução falha e o GitHub manda-te um email a lembrar de configurar o bot.
    velocidade a que estão a ganhar visualizações e confirma, um a um, que são
    do jogo certo.
 3. Ignora clips repetidos do mesmo momento.
-4. Edita os melhores e envia-os para o teu Telegram.
+4. Edita os melhores e envia-os para o teu Telegram. Cada vídeo abre com o
+   momento mais forte do clip (o pico de volume) e uma frase de gancho em
+   letras amarelas, escrita por uma IA gratuita a partir do que o streamer
+   diz; depois recomeça o clip desde o início, com legendas palavra a palavra.
 
 ## Instalação
 
@@ -87,6 +90,12 @@ só se fizeste o passo 2.
 | `TWITCH_CLIENT_SECRET` | Client Secret da Twitch |
 | `TELEGRAM_BOT_TOKEN` | token do bot |
 | `TELEGRAM_CHAT_ID` | o teu chat id |
+| `GEMINI_API_KEY` | opcional: chave grátis do Gemini para escrever os ganchos |
+
+Para a `GEMINI_API_KEY`: entra em <https://aistudio.google.com/app/apikey>
+com a tua conta Google, carrega em **Create API key** e copia a chave. É
+gratuita. Sem ela, os ganchos são escritos pelo Pollinations (grátis, sem
+chave) ou, se esse falhar, vêm de uma lista de frases fixas.
 
 ### 5. Streamers
 
@@ -132,6 +141,13 @@ Tudo em `config.yaml`:
 - `max_per_run`, `max_per_day`: quantos clips recebes por execução e por dia
   (o dia conta em UTC).
 - `hashtags`: vão na descrição; a primeira vai também no título.
+- `hook`: `enabled: false` desliga o gancho e a capa; `seconds` é a duração
+  do momento forte no início (0 tira só esse momento); `model` é o modelo do
+  Gemini.
+
+O kit do canal (nome, bio, avatar, banner, como publicar) está em
+[`docs/canal/`](docs/canal/README.md). O segundo canal, de vídeos de factos
+feitos com o MoneyPrinterTurbo, está em [`faceless/`](faceless/README.md).
 
 ### Facecam
 
