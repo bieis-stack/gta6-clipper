@@ -300,6 +300,16 @@
       "video_id": null,
       "vod_offset": null
     },
+    "DarkPunchyGooseTheRinger-YB0RATjK4l98i8sH": {
+      "attempts": 0,
+      "broadcaster_id": "caedrel",
+      "created_at": "2026-11-14T12:07:31+00:00",
+      "game": "league of legends",
+      "status": "skipped",
+      "updated_at": "2026-11-14T12:27:16.829134+00:00",
+      "video_id": null,
+      "vod_offset": null
+    },
     "DeafPiliableArmadilloDansGame-BSl2CkTPO123K4Ex": {
       "attempts": 0,
       "broadcaster_id": "caseoh_",
@@ -701,12 +711,12 @@
       "vod_offset": null
     },
     "PlacidPrettiestSandstormBuddhaBar-AnJQSd40FhTvpUUV": {
-      "attempts": 0,
+      "attempts": 1,
       "broadcaster_id": "theburntpeanut",
       "created_at": "2026-11-14T07:46:37+00:00",
       "game": "rob run",
-      "status": "skipped",
-      "updated_at": "2026-11-14T08:30:35.144794+00:00",
+      "status": "delivered",
+      "updated_at": "2026-11-14T12:27:16.829134+00:00",
       "video_id": null,
       "vod_offset": null
     },
@@ -931,12 +941,12 @@
       "vod_offset": null
     },
     "TsundereEsteemedMooseOSsloth-1lOUCAXuUtcZwPKO": {
-      "attempts": 0,
+      "attempts": 1,
       "broadcaster_id": "theburntpeanut",
       "created_at": "2026-11-14T09:20:41+00:00",
       "game": "rob run",
-      "status": "skipped",
-      "updated_at": "2026-11-14T10:16:16.511445+00:00",
+      "status": "delivered",
+      "updated_at": "2026-11-14T12:27:16.829134+00:00",
       "video_id": null,
       "vod_offset": null
     },
