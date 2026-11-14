@@ -1,0 +1,28 @@
+# Nicho do canal de vídeos gerados pelo MoneyPrinterTurbo.
+# A IA inventa um tema novo por vídeo dentro deste nicho; se falhar, usa o
+# primeiro tema desta lista que ainda não foi feito.
+niche: >-
+  Real-life Vice City: surprising, true facts about Miami and Florida, the real
+  places GTA VI's state of Leonida is based on.
+
+seeds:
+  - Why Florida gets more lightning strikes than any other US state
+  - How Burmese pythons took over the Everglades
+  - The story behind Miami Beach's Art Deco buildings
+  - How Miami Vice changed TV in the 1980s
+  - The Overseas Highway that connects the Florida Keys
+  - Why Miami is the cruise ship capital of the world
+  - Why South Florida is the only place with both alligators and crocodiles
+  - How Hurricane Andrew changed Miami forever
+  - How Little Havana became the heart of Cuban Miami
+  - The day Key West declared war on the United States
+  - Why Florida's open records laws create so many Florida Man headlines
+  - How Cape Canaveral became America's gateway to space
+  - Why manatees are called sea cows
+  - Why Daytona Beach became the birthplace of speed records
+  - How Miami grew from a tiny town to a megacity in 100 years
+  - Why Florida is called the Sunshine State
+  - The secret history of Miami's Stiltsville houses in the ocean
+  - Why so many supercars end up in Miami
+  - How spring break in Florida started
+  - The Florida sinkholes that swallow houses
