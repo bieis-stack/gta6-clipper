@@ -10,21 +10,24 @@ para ilustrar.
 
 ## Como funciona
 
-1. `plan.py`: o GitHub Models (grátis) escolhe um tema novo dentro do nicho (sem repetir os
-   que estão em `state.json`) e escreve o gancho, o título e a descrição. Se
-   falhar, usa o próximo tema de `topics.yaml`.
-2. O MoneyPrinterTurbo escreve o texto (a primeira frase é o gancho falado),
-   vai buscar vídeos ao Pixabay, grava a voz (Edge, grátis) e põe legendas
-   palavra a palavra.
-3. `finish.py`: põe o gancho em letras amarelas nos primeiros 3 segundos,
-   envia para o Telegram e regista o tema.
+1. `plan.py` escolhe o vídeo. Primeiro usa os 20 vídeos escritos à mão em
+   `topics.yaml` (guião de 30 s, gancho, título e palavras de pesquisa, com
+   factos verificados): dá para 10 dias. Depois pede vídeos novos a uma IA
+   gratuita (GitHub Models ou Pollinations); se a IA falhar, repete a lista.
+2. O MoneyPrinterTurbo recebe o guião pronto, vai buscar vídeos ao Pixabay,
+   grava a voz (Edge, grátis) e põe legendas palavra a palavra. Não precisa
+   de IA nenhuma.
+3. `finish.py` põe o gancho em letras amarelas nos primeiros 3 segundos,
+   envia para o Telegram e regista o tema em `state.json`.
+
+Para acrescentar vídeos à mão, copia um bloco de `seeds` em `topics.yaml`.
 
 Corre às 15h e às 20h (hora de Lisboa no inverno). Para fazer um agora:
 Actions → "Factos (MoneyPrinterTurbo)" → Run workflow.
 
 ## Chaves (Secrets do repositório)
 
-- Nenhuma chave de IA: usa o GitHub Models com o token do próprio workflow.
+- Nenhuma chave de IA.
 - `PIXABAY_API_KEY`: grátis em <https://pixabay.com/api/docs/> (cria conta,
   a chave aparece na própria página, na secção "Parameters", ao lado de
   `key`). O Pexels suspendeu as chaves novas; se tiveres uma,

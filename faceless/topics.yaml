@@ -1,28 +1,248 @@
 # Nicho do canal de vídeos gerados pelo MoneyPrinterTurbo.
-# A IA inventa um tema novo por vídeo dentro deste nicho; se falhar, usa o
-# primeiro tema desta lista que ainda não foi feito.
+# A IA (grátis) inventa um vídeo novo dentro deste nicho; se falhar, usa o
+# primeiro vídeo desta lista que ainda não foi feito. Cada um tem o guião
+# (cerca de 30 s lido em voz alta), o gancho, o título e as palavras para
+# procurar imagens no Pixabay.
 niche: >-
   Real-life Vice City: surprising, true facts about Miami and Florida, the real
   places GTA VI's state of Leonida is based on.
 
 seeds:
-  - Why Florida gets more lightning strikes than any other US state
-  - How Burmese pythons took over the Everglades
-  - The story behind Miami Beach's Art Deco buildings
-  - How Miami Vice changed TV in the 1980s
-  - The Overseas Highway that connects the Florida Keys
-  - Why Miami is the cruise ship capital of the world
-  - Why South Florida is the only place with both alligators and crocodiles
-  - How Hurricane Andrew changed Miami forever
-  - How Little Havana became the heart of Cuban Miami
-  - The day Key West declared war on the United States
-  - Why Florida's open records laws create so many Florida Man headlines
-  - How Cape Canaveral became America's gateway to space
-  - Why manatees are called sea cows
-  - Why Daytona Beach became the birthplace of speed records
-  - How Miami grew from a tiny town to a megacity in 100 years
-  - Why Florida is called the Sunshine State
-  - The secret history of Miami's Stiltsville houses in the ocean
-  - Why so many supercars end up in Miami
-  - How spring break in Florida started
-  - The Florida sinkholes that swallow houses
+  - subject: Why Florida gets more lightning than any other US state
+    hook: FLORIDA IS A LIGHTNING MAGNET
+    title: Why Florida gets struck more than anywhere ⚡
+    terms: lightning storm, florida thunderstorm, miami skyline storm
+    script: >-
+      Florida gets hit by more lightning than any other state in America.
+      Almost every summer afternoon, a sea breeze from the Atlantic crashes into
+      a sea breeze from the Gulf right over the middle of the state. The hot,
+      wet air shoots up, and huge thunderstorms explode out of a clear morning.
+      The stretch between Tampa and Orlando is even nicknamed Lightning Alley.
+      Would you go outside during a Florida storm?
+
+  - subject: How Burmese pythons took over the Everglades
+    hook: THE SWAMP HAS A SNAKE PROBLEM
+    title: Giant pythons are taking over Florida 🐍
+    terms: python snake, everglades swamp, alligator swamp
+    script: >-
+      There are giant pythons living wild in Florida, and they are not supposed
+      to be there. Burmese pythons come from Southeast Asia, but escaped and
+      released pets started breeding in the Everglades. Today there are tens of
+      thousands of them, and they eat almost anything, from rabbits to deer.
+      Florida even pays hunters to catch them, and holds a yearly python
+      hunting challenge. Would you sign up to hunt one?
+
+  - subject: The story behind Miami Beach's Art Deco buildings
+    hook: THESE COLOURS ALMOST DISAPPEARED
+    title: Miami Beach almost lost its famous buildings 🏨
+    terms: miami beach art deco, ocean drive, miami beach hotel
+    script: >-
+      The pastel buildings on Miami Beach almost got demolished. Most of them
+      were built in the 1930s and 40s in a style called Art Deco. By the 1970s
+      many were run down, and developers wanted them gone. A group of locals
+      fought back, and in 1979 the district became the first twentieth century
+      neighbourhood on the US National Register of Historic Places. The famous
+      pastel colours were only added in the 1980s. Which colour is your
+      favourite?
+
+  - subject: How Miami Vice changed TV in the 1980s
+    hook: THIS SHOW MADE MIAMI COOL
+    title: The TV show that made Miami famous 🌴
+    terms: miami night, sports car, neon lights city
+    script: >-
+      One TV show changed how the whole world saw Miami. Miami Vice started in
+      1984 and looked nothing like the cop shows before it. Pastel suits,
+      T-shirts under jackets, fast cars, and real pop songs playing over the
+      action. People copied the outfits everywhere, and Miami went from a
+      quiet retirement city to the coolest place on TV. You can still see that
+      look in Vice City today. Would you wear a pastel suit?
+
+  - subject: The Overseas Highway that connects the Florida Keys
+    hook: A ROAD IN THE MIDDLE OF THE SEA
+    title: This highway goes straight across the ocean 🌊
+    terms: florida keys bridge, seven mile bridge, ocean road
+    script: >-
+      There is a highway in Florida that drives straight across the ocean. The
+      Overseas Highway runs about 113 miles from the mainland to Key West, over
+      42 bridges. It was built on top of an old railroad that a billionaire
+      finished in 1912. A huge hurricane wrecked the railroad in 1935, so they
+      turned it into a road. The longest bridge is seven miles of nothing but
+      water. Would you drive it?
+
+  - subject: Why Miami is the cruise ship capital of the world
+    hook: THE BUSIEST CRUISE PORT ON EARTH
+    title: Why every cruise ship goes to Miami 🚢
+    terms: cruise ship, miami port, caribbean sea
+    script: >-
+      More cruise passengers sail from Miami than from anywhere else on the
+      planet. PortMiami sends out millions of people every year. The reason is
+      location: the Bahamas are only a short trip away, and the whole Caribbean
+      is right next door. Some of the biggest ships ever built leave from here,
+      carrying thousands of people like floating cities. Would you rather go on
+      a cruise or a road trip?
+
+  - subject: Why South Florida has both alligators and crocodiles
+    hook: THE ONLY PLACE WITH BOTH
+    title: The only place on Earth with both 🐊
+    terms: alligator, crocodile, everglades
+    script: >-
+      South Florida is the only place in the world where alligators and
+      crocodiles live side by side. Alligators like fresh water, crocodiles like
+      salty and brackish water, and the Everglades have both. You can tell them
+      apart by the snout. Alligators have a wide, rounded U shape. Crocodiles
+      have a pointy V shape, and you can still see their teeth when the mouth
+      is closed. Could you tell them apart?
+
+  - subject: How Hurricane Andrew changed Miami forever
+    hook: THE STORM THAT CHANGED EVERYTHING
+    title: The hurricane that rewrote the rules 🌀
+    terms: hurricane, palm trees wind storm, storm clouds
+    script: >-
+      In 1992 one storm changed how every house in Florida is built. Hurricane
+      Andrew hit south of Miami as a Category 5, with winds over 150 miles per
+      hour. It destroyed tens of thousands of homes in a single night. After
+      that, Florida made some of the toughest building rules in America:
+      stronger roofs, impact windows, and storm shutters. Have you ever been
+      through a big storm?
+
+  - subject: How Little Havana became the heart of Cuban Miami
+    hook: A PIECE OF CUBA IN MIAMI
+    title: The Miami street that feels like Cuba ☕
+    terms: little havana, cuban coffee, miami street
+    script: >-
+      There is a neighbourhood in Miami where you can feel like you are in
+      Cuba. After the Cuban revolution in 1959, thousands of Cubans moved to
+      Miami, and many settled around a street called Calle Ocho. Today you can
+      watch old men playing dominoes in the park, grab a tiny cup of strong
+      Cuban coffee from a street window, and hear Spanish everywhere. Would you
+      try a Cuban coffee?
+
+  - subject: The day Key West declared war on the United States
+    hook: THIS TOWN DECLARED WAR ON THE USA
+    title: The day Key West declared war on America 🏴
+    terms: key west, florida keys beach, sunset ocean
+    script: >-
+      In 1982 the town of Key West declared war on the United States. Police
+      had put up a roadblock on the only road into the Keys, and tourists hated
+      it. So the mayor declared Key West an independent country called the
+      Conch Republic. The war lasted about a minute. They surrendered and asked
+      for a billion dollars in foreign aid. The roadblock was removed, and they
+      still celebrate it every year. Genius or crazy?
+
+  - subject: Why there are so many Florida Man headlines
+    hook: THE REAL REASON FLORIDA MAN EXISTS
+    title: The real reason Florida Man is everywhere 📰
+    terms: newspaper, police car lights, florida street
+    script: >-
+      Florida Man is famous for the craziest headlines on the internet. But
+      Floridians are not that much stranger than everyone else. Florida has
+      some of the strongest public records laws in America. Police reports and
+      arrest records are easy for reporters to get, so the weird stories get
+      published here while in other states they stay hidden. What is the
+      wildest Florida Man headline you have seen?
+
+  - subject: How Cape Canaveral became America's gateway to space
+    hook: EVERY ROCKET LAUNCHES FROM HERE
+    title: Why rockets launch from Florida 🚀
+    terms: rocket launch, space shuttle, beach sunrise
+    script: >-
+      The first humans to walk on the Moon left Earth from Florida. Apollo 11
+      launched from Cape Canaveral in 1969, and rockets still fly from there
+      today. The spot was chosen on purpose. It is closer to the equator, so
+      Earth's spin gives rockets a free speed boost, and it launches east over
+      the ocean, far from cities. Would you watch a launch in person?
+
+  - subject: Why manatees are called sea cows
+    hook: THE GENTLE GIANTS OF FLORIDA
+    title: Why Florida's sea cows are so huge 🐄
+    terms: manatee, underwater, florida spring water
+    script: >-
+      Florida has giant animals called sea cows, and they are actually manatees.
+      They got the nickname because they graze on seagrass all day like cows
+      on a field. An adult can weigh more than a thousand pounds, and their
+      closest living relatives on land are elephants. When the ocean gets
+      cold, they gather in warm springs, sometimes by the hundreds. Would you
+      swim with one?
+
+  - subject: Why Daytona Beach became the birthplace of speed
+    hook: THEY RACED CARS ON THE BEACH
+    title: They used to race cars on the beach 🏎️
+    terms: race car, daytona beach, sand beach car
+    script: >-
+      People used to break world speed records on a beach in Florida. The sand
+      at Daytona Beach is so hard and flat that early racers drove on it at
+      full speed. In 1935 a driver went over 276 miles per hour right there on
+      the sand. Racing grew so big that NASCAR was founded in Daytona Beach in
+      1948, and the famous Daytona 500 is still held nearby. Would you drive on
+      the beach?
+
+  - subject: How Miami grew from a tiny town to a megacity
+    hook: MIAMI WAS ALMOST NOTHING
+    title: Miami was tiny 130 years ago 🏙️
+    terms: miami skyline, city aerial, miami downtown
+    script: >-
+      Miami became a city in 1896 with only a few hundred people. A woman
+      named Julia Tuttle convinced a railroad builder to bring trains all the
+      way down to her land, which makes her the only woman credited with
+      founding a major American city. Once the train arrived, people poured
+      in. Today the Miami area has about six million people. What will Miami
+      look like in another hundred years?
+
+  - subject: Why Florida is called the Sunshine State
+    hook: THE SUNSHINE STATE IS SUPER RAINY
+    title: The Sunshine State is secretly rainy ☀️
+    terms: florida sunshine, palm beach sun, rain storm
+    script: >-
+      Florida is called the Sunshine State, but it is one of the rainiest
+      states in America. The nickname became official in 1970 and went on
+      every licence plate. The trick is that Florida rain comes fast. A huge
+      storm can pour for twenty minutes in the afternoon, and then the sun
+      comes right back out. So it really is sunny and rainy on the same day.
+      Would you live there?
+
+  - subject: The story of Stiltsville, the houses in the middle of the bay
+    hook: HOUSES IN THE MIDDLE OF THE SEA
+    title: Miami has houses standing in the ocean 🏠
+    terms: stilt house, biscayne bay, ocean house
+    script: >-
+      Just off Miami there are houses standing in the middle of the sea. It is
+      called Stiltsville. In the 1930s people started building wooden shacks on
+      stilts in Biscayne Bay, far from the rules on land. They became famous
+      for wild parties. Hurricanes knocked most of them down, and only a few
+      survive today inside a national park. Would you spend a night out there?
+
+  - subject: Florida's coral reef, the only one of its kind in the mainland US
+    hook: AMERICA'S ONLY CORAL BARRIER REEF
+    title: The hidden reef off the coast of Florida 🐠
+    terms: coral reef, tropical fish, underwater ocean
+    script: >-
+      Florida has something no other mainland US state has: a living coral
+      barrier reef. It runs for about 350 miles along the coast down to the
+      Keys, and it is one of the biggest in the world. Thousands of kinds of
+      fish, turtles, and sharks live there. It is also in danger, because
+      warmer water makes the coral bleach and die. Would you go snorkelling
+      there?
+
+  - subject: How spring break in Florida started
+    hook: HOW SPRING BREAK WAS BORN
+    title: How spring break in Florida began 🏖️
+    terms: beach party, florida beach, palm trees beach
+    script: >-
+      Spring break as we know it started with a swimming team. In the 1930s
+      college swimmers came to Fort Lauderdale to train in the warm weather.
+      Word spread, and a 1960 movie called Where the Boys Are made it famous.
+      Soon hundreds of thousands of students showed up every year. The city
+      got so tired of it that it pushed the parties away in the 1980s. Would
+      you go to Florida for spring break?
+
+  - subject: The Florida sinkholes that swallow houses
+    hook: THE GROUND JUST DISAPPEARED
+    title: In Florida the ground can swallow a house 🕳️
+    terms: sinkhole, florida limestone, cave water
+    script: >-
+      In Florida the ground can suddenly open up and swallow a house. Most of
+      the state sits on limestone, a rock that slowly dissolves in rainwater.
+      Underground caves form, and when the roof of a cave gets too thin, the
+      ground on top collapses. In 1981 a sinkhole in Winter Park grew to about
+      350 feet wide and swallowed a house, cars, and part of a swimming pool.
+      Would you live on top of that?

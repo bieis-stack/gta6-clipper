@@ -45,14 +45,15 @@ jobs:
 
       - name: Fazer o vídeo
         run: |
-          SUBJECT="$(python -c 'import json;print(json.load(open("faceless_out/plan.json"))["subject"])')"
-          SOURCE="$(python -c 'import json;print(json.load(open("faceless_out/plan.json"))["source"])')"
+          field() { python -c 'import json,sys;print(json.load(open("faceless_out/plan.json",encoding="utf-8"))[sys.argv[1]])' "$1"; }
+          # O guião e as palavras de pesquisa vêm do plan.json: o MoneyPrinterTurbo
+          # não precisa de IA nenhuma para fazer o vídeo.
           mpt cli \
-            --video-subject "$SUBJECT" \
-            --video-source "$SOURCE" \
+            --video-subject "$(field subject)" \
+            --video-script "$(field script)" \
+            --video-terms "$(field terms)" \
+            --video-source "$(field source)" \
             --video-language en-US \
-            --paragraph-number 1 \
-            --video-script-prompt "Open with one sentence that makes viewers need to keep watching. Short, punchy sentences. Only state well-known, verifiable facts; if unsure, leave it out. End with a question that invites comments. About 30 seconds when read aloud." \
             --video-aspect 9:16 \
             --video-count 1 \
             --voice-name en-US-ChristopherNeural-Male \
