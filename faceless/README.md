@@ -5,7 +5,7 @@ Telegram dos clips (a mensagem diz "Vídeo do canal de factos").
 
 **Nicho:** "Real-life Vice City", factos verdadeiros e curiosos sobre Miami e
 a Flórida, os sítios reais em que o estado de Leonida do GTA VI se baseia.
-Aproveita a curiosidade do lançamento e o Pexels tem muitos vídeos de Miami
+Aproveita a curiosidade do lançamento e o Pixabay tem muitos vídeos de Miami
 para ilustrar.
 
 ## Como funciona
@@ -14,7 +14,7 @@ para ilustrar.
    que estão em `state.json`) e escreve o gancho, o título e a descrição. Se
    falhar, usa o próximo tema de `topics.yaml`.
 2. O MoneyPrinterTurbo escreve o texto (a primeira frase é o gancho falado),
-   vai buscar vídeos ao Pexels, grava a voz (Edge, grátis) e põe legendas
+   vai buscar vídeos ao Pixabay, grava a voz (Edge, grátis) e põe legendas
    palavra a palavra.
 3. `finish.py`: põe o gancho em letras amarelas nos primeiros 3 segundos,
    envia para o Telegram e regista o tema.
@@ -25,8 +25,10 @@ Actions → "Factos (MoneyPrinterTurbo)" → Run workflow.
 ## Chaves (Secrets do repositório)
 
 - `GEMINI_API_KEY`: a mesma dos clips.
-- `PEXELS_API_KEY`: grátis em <https://www.pexels.com/api/> (cria conta,
-  pede a chave, cola-a nos Secrets).
+- `PIXABAY_API_KEY`: grátis em <https://pixabay.com/api/docs/> (cria conta,
+  a chave aparece na própria página, na secção "Parameters", ao lado de
+  `key`). O Pexels suspendeu as chaves novas; se tiveres uma,
+  `PEXELS_API_KEY` também serve.
 - `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID`: já estão guardados.
 
 ## Aviso importante

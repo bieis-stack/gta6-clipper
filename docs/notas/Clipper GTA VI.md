@@ -1,7 +1,7 @@
 ---
 tipo: projeto
 projeto: Clipper GTA VI
-estado: a funcionar com gancho e capa; faltam as chaves Gemini e Pexels
+estado: a funcionar com gancho e capa; faltam as chaves Gemini e Pixabay
 atualizado: 2026-11-14
 repositorio: https://github.com/bieis-stack/gta6-clipper
 tags: [projeto, gta6, clips, automacao]
@@ -30,7 +30,7 @@ no YouTube Shorts e no TikTok. Os streamers deram autorização para clipar.
 - [x] Kit do canal (Wasted Clips): nome, bio, avatar, banner
 - [x] Canal de factos com o MoneyPrinterTurbo (2 vídeos por dia)
 - [ ] Criar a chave grátis do Gemini e guardá-la como `GEMINI_API_KEY`
-- [ ] Criar a chave grátis do Pexels e guardá-la como `PEXELS_API_KEY`
+- [ ] Criar a chave grátis do Pixabay e guardá-la como `PIXABAY_API_KEY`
 - [ ] Abrir os canais no YouTube e no TikTok (ver `docs/canal/` no repositório)
 - [ ] A 19/11: confirmar que chegam clips de GTA VI
 
@@ -88,10 +88,13 @@ Limites: 2 clips por execução, 5 por dia (dia em UTC). Muda-se em
 Sem ela os ganchos continuam a sair (Pollinations ou frases fixas), mas o
 canal de factos não funciona.
 
-### Chave do Pexels (2 minutos, grátis)
+### Chave do Pixabay (2 minutos, grátis)
 
-1. Criar conta em <https://www.pexels.com/api/> e pedir a chave.
-2. Guardar no mesmo sítio como `PEXELS_API_KEY`.
+1. Criar conta em <https://pixabay.com/> e abrir <https://pixabay.com/api/docs/>.
+2. A chave aparece na secção "Parameters", ao lado de `key`.
+3. Guardar no mesmo sítio como `PIXABAY_API_KEY`.
+
+(O Pexels suspendeu as chaves novas em novembro de 2026.)
 
 ### Canais
 

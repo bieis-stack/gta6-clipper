@@ -96,7 +96,7 @@ nestas partes volta ao comportamento antigo.
 
 **Canal de factos (14/11):** `faceless/` e o workflow `faceless.yml` correm o
 MoneyPrinterTurbo no Actions, 2 vídeos por dia, nicho "Real-life Vice City".
-Precisa de `GEMINI_API_KEY` e `PEXELS_API_KEY`. Não foi corrido localmente (a
+Precisa de `GEMINI_API_KEY` e `PIXABAY_API_KEY` (o Pexels suspendeu chaves novas). Não foi corrido localmente (a
 instalação foi bloqueada pelas permissões da sessão): a primeira verificação
 é a primeira execução no GitHub.
 

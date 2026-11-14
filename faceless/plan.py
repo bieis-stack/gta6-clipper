@@ -2,7 +2,7 @@
 
 Uso: python faceless/plan.py <pasta de saída>
 
-Lê GEMINI_API_KEY e PEXELS_API_KEY do ambiente e nunca as escreve no ecrã.
+Lê GEMINI_API_KEY e PIXABAY_API_KEY (ou PEXELS_API_KEY) do ambiente e nunca as escreve no ecrã.
 Escreve em <pasta>/plan.json o tema, o gancho, o título e a descrição, e em
 $MPT_HOME/config.toml a configuração do MoneyPrinterTurbo.
 """
@@ -91,12 +91,12 @@ def toml_string(value: str) -> str:
     return json.dumps(value)  # uma string JSON é uma string TOML básica válida
 
 
-def write_config(home: Path, gemini_key: str, pexels_key: str) -> None:
+def write_config(home: Path, gemini_key: str, source: str, footage_key: str) -> None:
     home.mkdir(parents=True, exist_ok=True)
     (home / "config.toml").write_text(
         "[app]\n"
-        'video_source = "pexels"\n'
-        f"pexels_api_keys = [{toml_string(pexels_key)}]\n"
+        f"video_source = {toml_string(source)}\n"
+        f"{source}_api_keys = [{toml_string(footage_key)}]\n"
         'llm_provider = "gemini"\n'
         f"gemini_api_key = {toml_string(gemini_key)}\n"
         f"gemini_model_name = {toml_string(MODEL)}\n"
@@ -108,9 +108,12 @@ def write_config(home: Path, gemini_key: str, pexels_key: str) -> None:
 def main() -> int:
     out = Path(sys.argv[1] if len(sys.argv) > 1 else "faceless_out")
     gemini_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    # O Pexels suspendeu as chaves novas (novembro de 2026); o Pixabay serve igual.
     pexels_key = os.environ.get("PEXELS_API_KEY", "").strip()
+    pixabay_key = os.environ.get("PIXABAY_API_KEY", "").strip()
+    source, footage_key = ("pexels", pexels_key) if pexels_key else ("pixabay", pixabay_key)
     missing = [name for name, value in (("GEMINI_API_KEY", gemini_key),
-                                        ("PEXELS_API_KEY", pexels_key)) if not value]
+                                        ("PIXABAY_API_KEY", footage_key)) if not value]
     if missing:
         print(f"erro: faltam os Secrets {', '.join(missing)} no repositório", file=sys.stderr)
         return 1
@@ -119,8 +122,9 @@ def main() -> int:
     plan = choose(topics["niche"], topics["seeds"], done, gemini_key)
     plan["description"] = "\n\n".join(p for p in (plan["description"], HASHTAGS) if p)
     out.mkdir(parents=True, exist_ok=True)
+    plan["source"] = source
     (out / "plan.json").write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
-    write_config(Path(os.environ["MPT_HOME"]), gemini_key, pexels_key)
+    write_config(Path(os.environ["MPT_HOME"]), gemini_key, source, footage_key)
     print(f"tema: {plan['subject']}")
     return 0
 

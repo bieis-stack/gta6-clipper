@@ -1,7 +1,7 @@
 name: Factos (MoneyPrinterTurbo)
 
 # Dois vídeos por dia de factos sobre Miami e a Flórida, entregues no Telegram.
-# Precisa dos Secrets GEMINI_API_KEY, PEXELS_API_KEY, TELEGRAM_BOT_TOKEN e
+# Precisa dos Secrets GEMINI_API_KEY, PIXABAY_API_KEY (ou PEXELS_API_KEY), TELEGRAM_BOT_TOKEN e
 # TELEGRAM_CHAT_ID. Sem eles, falha e o GitHub avisa por email.
 on:
   schedule:
@@ -38,13 +38,16 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
         run: python faceless/plan.py faceless_out
 
       - name: Fazer o vídeo
         run: |
           SUBJECT="$(python -c 'import json;print(json.load(open("faceless_out/plan.json"))["subject"])')"
+          SOURCE="$(python -c 'import json;print(json.load(open("faceless_out/plan.json"))["source"])')"
           mpt cli \
             --video-subject "$SUBJECT" \
+            --video-source "$SOURCE" \
             --video-language en-US \
             --paragraph-number 1 \
             --video-script-prompt "Open with one sentence that makes viewers need to keep watching. Short, punchy sentences. Only state well-known, verifiable facts; if unsure, leave it out. End with a question that invites comments. About 30 seconds when read aloud." \
