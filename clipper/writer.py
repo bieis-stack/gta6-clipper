@@ -20,6 +20,7 @@ log = logging.getLogger(__name__)
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 POLLINATIONS_URL = "https://text.pollinations.ai/openai"
 TIMEOUT = 20
+POLLINATIONS_TIMEOUT = 45  # é gratuito e às vezes lento
 MAX_TRANSCRIPT = 1500
 HOOK_MIN_WORDS = 2
 HOOK_MAX_WORDS = 7
@@ -118,7 +119,7 @@ def _ask_pollinations(prompt: str, session: requests.Session) -> dict:
     response = session.post(
         POLLINATIONS_URL,
         json={"model": "openai", "messages": [{"role": "user", "content": prompt}]},
-        timeout=TIMEOUT,
+        timeout=POLLINATIONS_TIMEOUT,
     )
     response.raise_for_status()
     return _parse(response.json()["choices"][0]["message"]["content"])

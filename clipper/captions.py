@@ -24,7 +24,7 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Title,{FONT},96,&H0000FFFF,&H0000FFFF,&H00000000,&H96000000,0,0,0,0,100,100,0,0,1,9,4,5,60,60,0,1
+Style: Title,{FONT},112,&H0000FFFF,&H0000FFFF,&H1A000000,&H1A000000,0,0,0,0,100,100,0,0,3,16,0,5,60,60,0,1
 Style: Caption,{FONT},90,&H00FFFFFF,&H00FFFFFF,&H00000000,&H96000000,0,0,0,0,100,100,0,0,1,7,3,5,60,60,0,1
 Style: Credit,{FONT},36,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,3,0,5,60,60,0,1
 
