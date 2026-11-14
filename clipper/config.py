@@ -30,11 +30,19 @@ class SelectionConfig:
 
 
 @dataclass(frozen=True)
+class HookConfig:
+    enabled: bool = True
+    seconds: float = 1.5  # duração do flash-forward; 0 desliga só o flash-forward
+    model: str = "gemini-flash-latest"
+
+
+@dataclass(frozen=True)
 class Config:
     game_name: str
     streamers: tuple[Streamer, ...]
     selection: SelectionConfig
     hashtags: tuple[str, ...]
+    hook: HookConfig = HookConfig()
 
 
 def _mapping(value, where: str) -> dict:
@@ -124,6 +132,22 @@ def _hashtags(raw) -> tuple[str, ...]:
     return tuple(tags)
 
 
+def _hook(raw) -> HookConfig:
+    data = _mapping(raw, "hook")
+    _reject_unknown(data, {"enabled", "seconds", "model"}, "hook")
+    defaults = HookConfig()
+    enabled = data.get("enabled", defaults.enabled)
+    if not isinstance(enabled, bool):
+        raise ConfigError("config: 'enabled' em hook tem de ser true ou false")
+    seconds = _number(data.get("seconds", defaults.seconds), "seconds")
+    if seconds > 5:
+        raise ConfigError("config: 'seconds' em hook não pode passar de 5")
+    model = data.get("model", defaults.model)
+    if not isinstance(model, str) or not model.strip():
+        raise ConfigError("config: 'model' em hook tem de ser o nome de um modelo do Gemini")
+    return HookConfig(enabled=enabled, seconds=seconds, model=model.strip())
+
+
 def load_config(path: Path) -> Config:
     try:
         raw = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
@@ -133,7 +157,7 @@ def load_config(path: Path) -> Config:
         raise ConfigError(f"config: YAML inválido em {path}: {error}") from None
     if not isinstance(raw, dict):
         raise ConfigError("config: o ficheiro tem de ser um conjunto de chaves e valores")
-    _reject_unknown(raw, {"game_name", "streamers", "selection", "metadata"}, "raiz")
+    _reject_unknown(raw, {"game_name", "streamers", "selection", "metadata", "hook"}, "raiz")
     game_name = raw.get("game_name")
     if not isinstance(game_name, str) or not game_name.strip():
         raise ConfigError("config: falta 'game_name'")
@@ -142,4 +166,5 @@ def load_config(path: Path) -> Config:
         streamers=_streamers(raw.get("streamers")),
         selection=_selection(raw.get("selection")),
         hashtags=_hashtags(raw.get("metadata")),
+        hook=_hook(raw.get("hook")),
     )

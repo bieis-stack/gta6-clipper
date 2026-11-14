@@ -20,11 +20,19 @@ def build_title(clip_title: str, streamer_name: str, tag: str, max_len: int = 10
     return (text + suffix)[:max_len]
 
 
-def build_description(clip: Clip, hashtags: tuple[str, ...]) -> str:
-    lines = [
+def build_description(clip: Clip, hashtags: tuple[str, ...], hook: str | None = None) -> str:
+    lines = []
+    if hook:
+        # A primeira linha é a única que aparece sem abrir a descrição.
+        lines += [f"{hook.capitalize()} 😳", ""]
+    lines += [
         f"🎥 {clip.broadcaster_name} → https://twitch.tv/{clip.broadcaster_login}",
         f"Clip: {clip.url}",
     ]
-    if hashtags:
-        lines += ["", " ".join(hashtags)]
+    tags = list(hashtags)
+    if hook and tags:
+        # Quem segue um streamer procura-o pelo nome.
+        tags.insert(0, f"#{clip.broadcaster_login}")
+    if tags:
+        lines += ["", " ".join(tags)]
     return "\n".join(lines)

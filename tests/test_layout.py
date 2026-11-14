@@ -6,7 +6,14 @@ import pytest
 from clipper.captions import Cue, build_ass
 from clipper.facecam import clamp_region
 from clipper import layout
-from clipper.layout import MAX_BYTES, RenderError, build_filter, render, text_positions
+from clipper.layout import (
+    MAX_BYTES,
+    RenderError,
+    build_filter,
+    render,
+    render_cover,
+    text_positions,
+)
 from clipper.media import MediaInfo, probe
 from clipper.models import Rect
 
@@ -176,3 +183,50 @@ def test_facecam_detection_reads_hevc_clips(tmp_path, monkeypatch):
     monkeypatch.setattr(facecam, "stable_face", lambda boxes, w: frames.append(len(boxes)) or real(boxes, w))
     assert facecam.detect_facecam(hevc_source(tmp_path)) is None
     assert frames == [10]  # os 10 fotogramas foram mesmo lidos
+
+
+def test_filter_with_flash_puts_the_peak_before_the_clip():
+    f = build_filter(INFO_1080P30, None, Path("a.ass"), Path("fonts"), flash=(12.0, 1.5))
+    assert "trim=start=12:duration=1.5" in f and "atrim=start=12:duration=1.5" in f
+    assert "concat=n=2:v=1:a=1[src][a]" in f
+    assert f.count("[src]") == 2  # produzido pela concatenação e usado pelo enquadramento
+
+
+def test_filter_with_flash_and_no_audio_concatenates_only_video():
+    info = replace(INFO_1080P30, has_audio=False)
+    f = build_filter(info, None, Path("a.ass"), Path("fonts"), flash=(3.0, 1.5))
+    assert "concat=n=2:v=1:a=0[src]" in f and "atrim" not in f
+
+
+@pytest.mark.parametrize("audio", [True, False])
+def test_render_with_flash_adds_its_length(make_video, tmp_path, audio):
+    src = make_video(seconds=10, audio=audio)
+    ass = tmp_path / "a.ass"
+    ass.write_text(build_ass([], title="HOOK", credit="c", duration=11.5, **text_positions(False)),
+                   encoding="utf-8")
+    dst = tmp_path / "out.mp4"
+    render(src, dst, facecam=None, ass_path=ass, fonts_dir=FONTS, flash=(6.0, 1.5))
+    info = probe(dst)
+    assert (info.width, info.height) == (1080, 1920)
+    assert info.duration == pytest.approx(11.5, abs=0.2)
+    assert info.has_audio == audio
+
+
+@pytest.mark.parametrize("facecam", [None, Rect(0, 720, 480, 360)])
+def test_render_cover_is_a_vertical_jpeg(make_video, tmp_path, facecam):
+    src = make_video(seconds=5)
+    ass = tmp_path / "cover.ass"
+    ass.write_text(build_ass([], title="HE DID WHAT", credit="twitch.tv/x", duration=1.0,
+                             **text_positions(facecam is not None)), encoding="utf-8")
+    dst = tmp_path / "cover.jpg"
+    render_cover(src, dst, facecam=facecam, ass_path=ass, fonts_dir=FONTS, at=2.0)
+    assert dst.read_bytes()[:2] == b"\xff\xd8"
+    info = probe(dst)
+    assert (info.width, info.height) == (1080, 1920)
+    assert dst.stat().st_size < 1_000_000
+
+
+def test_render_cover_failure_raises_render_error(tmp_path):
+    with pytest.raises(RenderError):
+        render_cover(tmp_path / "missing.mp4", tmp_path / "c.jpg", facecam=None,
+                     ass_path=tmp_path / "x.ass", fonts_dir=FONTS, at=0)

@@ -1,5 +1,6 @@
 import pytest
 
+from clipper.config import HookConfig, SelectionConfig
 from clipper import __main__ as cli
 from clipper.__main__ import main
 from clipper.pipeline import GameNotFound, RunSummary
@@ -8,6 +9,7 @@ from clipper.publishers.local import LocalPublisher
 from clipper.publishers.telegram import TelegramPublisher
 from clipper.twitch import TwitchAuthError, TwitchClient
 from clipper.twitch_public import PublicTwitch
+from tests.helpers import clip
 
 SECRETS = {
     "TWITCH_CLIENT_ID": "twitch-id-value",
@@ -240,3 +242,20 @@ def test_dry_run_starts_from_a_clean_slate(env, paths, fake_run):
     paths["state"].write_text('{"version": 1, "clips": {"old": {"status": "delivered"}}}')
     main(argv(paths, "--dry-run"))
     assert fake_run.calls[0]["state"].done_ids() == set()
+
+
+def test_writer_passes_the_gemini_key_and_model(monkeypatch):
+    seen = {}
+
+    def fake_write_texts(**kwargs):
+        seen.update(kwargs)
+        return "texts"
+
+    monkeypatch.setenv("GEMINI_API_KEY", " k3y ")
+    monkeypatch.setattr(cli, "write_texts", fake_write_texts)
+    config = cli.Config("Grand Theft Auto VI", (), SelectionConfig(), (), HookConfig(model="m1"))
+    write = cli._writer(config)
+    assert write("hello", clip("Abc", name="xQc", title="lol")) == "texts"
+    assert seen["api_key"] == "k3y" and seen["model"] == "m1"
+    assert seen["transcript"] == "hello" and seen["streamer"] == "xQc" and seen["clip_id"] == "Abc"
+    assert seen["game"] == "Grand Theft Auto VI"

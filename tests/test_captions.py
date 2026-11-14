@@ -13,8 +13,40 @@ def words(text, step=0.2):
 
 def test_group_by_max_words():
     cues = group_words(words("a b c d e"))
-    assert [c.text for c in cues] == ["A B C D", "E"]
-    assert cues[0].start == 0.0 and cues[0].end == pytest.approx(0.8)
+    assert [c.text for c in cues] == ["A B C", "D E"]
+    assert cues[0].start == 0.0 and cues[0].end == pytest.approx(0.6)
+
+
+def test_group_keeps_each_word_with_its_time():
+    cue = group_words(words("a b"))[0]
+    assert [(w.start, w.text) for w in cue.words] == [(0.0, "A"), (0.2, "B")]
+
+
+def test_build_ass_highlights_the_word_being_said():
+    cue = group_words(words("hey you", step=0.5))[0]
+    ass = build_ass([cue], title="", credit="", title_y=1, caption_y=700, credit_y=1, duration=5)
+    lines = [line for line in ass.splitlines() if ",Caption," in line]
+    assert len(lines) == 2
+    assert lines[0].startswith("Dialogue: 0,0:00:00.00,0:00:00.50,Caption")
+    assert "{\\c&H00FFFF&" in lines[0] and lines[0].index("HEY") < lines[0].index("{\\r}")
+    assert lines[1].startswith("Dialogue: 0,0:00:00.50,0:00:01.00,Caption")
+    assert lines[1].index("HEY") < lines[1].index("{\\c&H00FFFF&") < lines[1].index("YOU")
+
+
+def test_build_ass_offset_delays_captions_but_not_the_title():
+    ass = build_ass(
+        [Cue(1.0, 1.8, "HELLO")],
+        title="HOOK",
+        credit="c",
+        title_y=1,
+        caption_y=2,
+        credit_y=3,
+        duration=21.5,
+        offset=1.5,
+    )
+    assert "Dialogue: 0,0:00:00.00,0:00:03.00,Title" in ass
+    assert "Dialogue: 0,0:00:02.50,0:00:03.30,Caption" in ass
+    assert "Dialogue: 0,0:00:00.00,0:00:21.50,Credit" in ass
 
 
 def test_group_breaks_on_gap():

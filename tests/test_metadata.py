@@ -45,3 +45,14 @@ def test_description_without_hashtags_has_no_trailing_blank_lines():
     assert build_description(CLIP, ()) == (
         "🎥 Shroud → https://twitch.tv/shroud\nClip: https://clips.twitch.tv/Abc"
     )
+
+
+def test_description_opens_with_the_hook_and_tags_the_streamer():
+    assert build_description(CLIP, ("#GTA6", "#shorts"), hook="HE STOLE A JET") == (
+        "He stole a jet 😳\n"
+        "\n"
+        "🎥 Shroud → https://twitch.tv/shroud\n"
+        "Clip: https://clips.twitch.tv/Abc\n"
+        "\n"
+        "#shroud #GTA6 #shorts"
+    )
