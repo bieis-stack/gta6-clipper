@@ -1,7 +1,7 @@
 ---
 tipo: projeto
 projeto: Clipper GTA VI
-estado: a funcionar com gancho e capa; faltam as chaves Gemini e Pixabay
+estado: a funcionar com gancho e capa
 atualizado: 2026-11-14
 repositorio: https://github.com/bieis-stack/gta6-clipper
 tags: [projeto, gta6, clips, automacao]
@@ -29,8 +29,7 @@ no YouTube Shorts e no TikTok. Os streamers deram autorização para clipar.
 - [x] Gancho (momento mais forte primeiro + frase da IA), legendas palavra a palavra e capa
 - [x] Kit do canal (Wasted Clips): nome, bio, avatar, banner
 - [x] Canal de factos com o MoneyPrinterTurbo (2 vídeos por dia)
-- [ ] Criar a chave grátis do Gemini e guardá-la como `GEMINI_API_KEY`
-- [ ] Criar a chave grátis do Pixabay e guardá-la como `PIXABAY_API_KEY`
+- [x] Chave do Pixabay guardada (`PIXABAY_API_KEY`)
 - [ ] Abrir os canais no YouTube e no TikTok (ver `docs/canal/` no repositório)
 - [ ] A 19/11: confirmar que chegam clips de GTA VI
 
@@ -43,7 +42,7 @@ no YouTube Shorts e no TikTok. Os streamers deram autorização para clipar.
 3. Ignora clips repetidos do mesmo momento.
 4. Edita: 1080×1920, facecam em cima e jogo em baixo (deteção automática).
    **Gancho:** o vídeo abre com o momento mais alto do clip (1,5 s) e uma
-   frase curta em amarelo escrita pela IA; depois recomeça o clip. Legendas
+   frase curta em amarelo escrita pela IA (GitHub Models, grátis); depois recomeça o clip. Legendas
    de 3 palavras com a palavra dita a amarelo. Crédito ao streamer.
 5. Envia para o Telegram: a capa, o vídeo com o título (escrito pela IA), e
    a descrição pronta a copiar (abre com o gancho e tem o #streamer).
@@ -77,16 +76,11 @@ Limites: 2 clips por execução, 5 por dia (dia em UTC). Muda-se em
 
 ## Falta fazer
 
-### Chave do Gemini (2 minutos, grátis)
+### IA dos ganchos
 
-1. Entrar em <https://aistudio.google.com/app/apikey> com a conta Google.
-2. **Create API key** e copiar.
-3. Guardar em
-   <https://github.com/bieis-stack/gta6-clipper/settings/secrets/actions>
-   como `GEMINI_API_KEY`.
-
-Sem ela os ganchos continuam a sair (Pollinations ou frases fixas), mas o
-canal de factos não funciona.
+Não precisa de chave: usa o GitHub Models, grátis. O Gemini gratuito não
+existe na Europa (só pago), por isso a chave `GEMINI_API_KEY` que guardaste
+não é usada; podes apagá-la ou deixá-la.
 
 ### Chave do Pixabay (2 minutos, grátis)
 

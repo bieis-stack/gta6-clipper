@@ -122,6 +122,16 @@ espectadores clipam são quase sempre gritos e reações.
 - Descrição: linha do gancho, crédito com ligação ao canal do streamer,
   ligação do clip, hashtags.
 
+## Alterações depois do primeiro teste real (14/11)
+
+- O plano gratuito do Gemini não existe na Europa (403 "free tier is not
+  available for this project"). Primeiro escritor passa a ser o GitHub
+  Models, com o token do workflow (`models: read`).
+- O flash-forward com `split`+`trim` guardava em memória todos os fotogramas
+  até ao pico; o Actions matou o processo. O troço entra agora como segunda
+  entrada do ffmpeg (`-ss`/`-t`). Medido: 383 MB de pico num 60 s 1080p60
+  com o pico aos 50 s.
+
 ## Configuração
 
 ```yaml

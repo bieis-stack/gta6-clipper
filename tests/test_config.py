@@ -91,6 +91,7 @@ def test_hook_section(tmp_path):
         ("hook: {seconds: -1}", "seconds"),
         ("hook: {enabled: 1}", "enabled"),
         ("hook: {model: ''}", "model"),
+        ("hook: {github_model: 3}", "github_model"),
     ],
 )
 def test_hook_invalid(tmp_path, text, fragment):

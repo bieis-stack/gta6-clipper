@@ -89,14 +89,15 @@ hasanabi e o dono confirmou que chegaram. O ramo `ensaio` foi apagado.
 **Gancho, legendas e capa (14/11)**, spec em
 `docs/superpowers/specs/2026-11-14-hook-design.md`: o vídeo abre com o pico de
 volume do clip (1,5 s, `clipper/hook.py`); a frase do gancho e o título são
-escritos pelo Gemini (`GEMINI_API_KEY`, opcional) ou pelo Pollinations, com
-reserva numa lista fixa (`clipper/writer.py`); legendas de 3 palavras com a
+escritos pelo GitHub Models (token do workflow, permissão `models: read`),
+depois Gemini (só pago na Europa: o plano gratuito devolve 403), depois
+Pollinations, com reserva numa lista fixa (`clipper/writer.py`); legendas de 3 palavras com a
 palavra dita a amarelo; capa JPG enviada antes do vídeo. Qualquer falha
 nestas partes volta ao comportamento antigo.
 
 **Canal de factos (14/11):** `faceless/` e o workflow `faceless.yml` correm o
 MoneyPrinterTurbo no Actions, 2 vídeos por dia, nicho "Real-life Vice City".
-Precisa de `GEMINI_API_KEY` e `PIXABAY_API_KEY` (o Pexels suspendeu chaves novas). Não foi corrido localmente (a
+IA pelo GitHub Models; vídeos do Pixabay (`PIXABAY_API_KEY`; o Pexels suspendeu chaves novas). Não foi corrido localmente (a
 instalação foi bloqueada pelas permissões da sessão): a primeira verificação
 é a primeira execução no GitHub.
 
@@ -107,6 +108,11 @@ como publicar).
 (`gabrielpinacarvalho09-hue`). O clone em `C:/Users/gabri/gta6-clipper` usa o
 endereço `https://bieis-stack@github.com/...` para o Git Credential Manager
 pedir a conta certa. O `gh` não está instalado.
+
+**Montagem do flash-forward:** o troço do pico entra no ffmpeg como uma
+segunda entrada (`-ss`/`-t`). Com `split`+`trim` o ffmpeg guardava em memória
+todos os fotogramas até ao pico e o Actions matava o processo (código 143).
+A listagem pública da Twitch às vezes vem vazia; repete-se até 3 vezes.
 
 **Falta:**
 

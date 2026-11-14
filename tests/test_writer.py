@@ -131,3 +131,23 @@ def test_long_transcripts_are_trimmed_in_the_prompt():
     call(transcript="word " * 2000)
     prompt = json.loads(responses.calls[0].request.body)["contents"][0]["parts"][0]["text"]
     assert len(prompt) < 4000
+
+
+@responses.activate
+def test_github_models_is_tried_first():
+    responses.post(writer.GITHUB_MODELS_URL, json=pollinations_reply({"hook": "HE FLEW AWAY", "title": "t"}))
+    texts = call(github_token="ghs_tok", github_model="openai/gpt-4.1-mini")
+    assert texts.hook == "HE FLEW AWAY" and texts.source == "github"
+    request = responses.calls[0].request
+    assert request.headers["Authorization"] == "Bearer ghs_tok"
+    assert json.loads(request.body)["model"] == "openai/gpt-4.1-mini"
+
+
+@responses.activate
+def test_github_models_failure_falls_back_to_gemini(caplog):
+    responses.post(writer.GITHUB_MODELS_URL, status=429, json={"error": {"message": "Too many requests"}})
+    responses.post(GEMINI, json=gemini_reply({"hook": "NO WAY", "title": "t"}))
+    with caplog.at_level("WARNING"):
+        assert call(github_token="ghs_tok").source == "gemini"
+    assert "429" in caplog.text and "Too many requests" in caplog.text
+    assert "ghs_tok" not in caplog.text

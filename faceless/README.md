@@ -10,7 +10,7 @@ para ilustrar.
 
 ## Como funciona
 
-1. `plan.py`: o Gemini escolhe um tema novo dentro do nicho (sem repetir os
+1. `plan.py`: o GitHub Models (grátis) escolhe um tema novo dentro do nicho (sem repetir os
    que estão em `state.json`) e escreve o gancho, o título e a descrição. Se
    falhar, usa o próximo tema de `topics.yaml`.
 2. O MoneyPrinterTurbo escreve o texto (a primeira frase é o gancho falado),
@@ -24,7 +24,7 @@ Actions → "Factos (MoneyPrinterTurbo)" → Run workflow.
 
 ## Chaves (Secrets do repositório)
 
-- `GEMINI_API_KEY`: a mesma dos clips.
+- Nenhuma chave de IA: usa o GitHub Models com o token do próprio workflow.
 - `PIXABAY_API_KEY`: grátis em <https://pixabay.com/api/docs/> (cria conta,
   a chave aparece na própria página, na secção "Parameters", ao lado de
   `key`). O Pexels suspendeu as chaves novas; se tiveres uma,

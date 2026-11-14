@@ -73,9 +73,11 @@ def _destination() -> TelegramPublisher | None:
 
 
 def _writer(config: Config) -> Writer:
-    """Quem escreve o gancho: o Gemini com GEMINI_API_KEY, senão o Pollinations."""
+    """Quem escreve o gancho: GitHub Models, Gemini, Pollinations, por esta ordem."""
     key = _env("GEMINI_API_KEY")
-    log.info("gancho: %s", "Gemini" if key else "Pollinations (sem GEMINI_API_KEY)")
+    github_token = _env("GITHUB_MODELS_TOKEN")
+    chain = [name for name, on in (("GitHub Models", github_token), ("Gemini", key)) if on]
+    log.info("gancho: %s", " → ".join(chain + ["Pollinations", "frase fixa"]))
     session = requests.Session()
 
     def write(transcript: str, clip: Clip) -> Texts:
@@ -88,6 +90,8 @@ def _writer(config: Config) -> Writer:
             api_key=key,
             model=config.hook.model,
             session=session,
+            github_token=github_token,
+            github_model=config.hook.github_model,
         )
 
     return write

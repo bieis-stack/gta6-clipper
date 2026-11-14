@@ -62,23 +62,28 @@ def _number(value: float) -> str:
 def _flash_forward(info: MediaInfo, flash: tuple[float, float]) -> str:
     """Grafo que põe o troço `flash` (início, duração) à frente do clip inteiro.
 
+    O troço chega já cortado como entrada 0 (`-ss`/`-t`, ver `_inputs`) e o
+    clip inteiro como entrada 1. Cortar com split+trim obrigava o ffmpeg a
+    guardar em memória todos os fotogramas até ao pico: num clip de 60 s com o
+    pico no fim são vários GB, e o GitHub Actions matava o processo.
+
     Produz [src] (vídeo) e, se houver áudio, [a].
     """
-    start, length = (_number(value) for value in flash)
-    video = (
-        "[0:v]split=2[fv][mv];"
-        f"[fv]trim=start={start}:duration={length},setpts=PTS-STARTPTS[v1];"
-        "[mv]setpts=PTS-STARTPTS[v2];"
-    )
+    video = "[0:v]setpts=PTS-STARTPTS[v1];[1:v]setpts=PTS-STARTPTS[v2];"
     if not info.has_audio:
         return video + "[v1][v2]concat=n=2:v=1:a=0[src];"
     audio = (
-        "[0:a]asplit=2[fa][ma];"
-        f"[fa]atrim=start={start}:duration={length},asetpts=PTS-STARTPTS,"
-        f"afade=t=out:st={_number(max(flash[1] - 0.08, 0))}:d=0.08[a1];"
-        "[ma]asetpts=PTS-STARTPTS,afade=t=in:d=0.05[a2];"
+        f"[0:a]asetpts=PTS-STARTPTS,afade=t=out:st={_number(max(flash[1] - 0.08, 0))}:d=0.08[a1];"
+        "[1:a]asetpts=PTS-STARTPTS,afade=t=in:d=0.05[a2];"
     )
     return video + audio + "[v1][a1][v2][a2]concat=n=2:v=1:a=1[src][a];"
+
+
+def _inputs(src: Path, flash: tuple[float, float] | None) -> list[str]:
+    if not flash:
+        return ["-i", str(src)]
+    start, length = (_number(value) for value in flash)
+    return ["-ss", start, "-t", length, "-i", str(src), "-i", str(src)]
 
 
 def build_filter(
@@ -148,7 +153,7 @@ def render(
         if bitrate < MIN_VIDEO_BITRATE:
             break
         command = [
-            "ffmpeg", "-v", "error", "-y", "-i", str(src),
+            "ffmpeg", "-v", "error", "-y", *_inputs(src, flash),
             "-filter_complex", graph, "-map", "[v]", "-map", audio_map,
             "-c:v", "libx264", "-preset", "veryfast", "-crf", str(crf),
             "-maxrate", str(bitrate), "-bufsize", str(bitrate * 2), "-pix_fmt", "yuv420p",

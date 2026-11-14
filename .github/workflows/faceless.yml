@@ -1,7 +1,8 @@
 name: Factos (MoneyPrinterTurbo)
 
 # Dois vídeos por dia de factos sobre Miami e a Flórida, entregues no Telegram.
-# Precisa dos Secrets GEMINI_API_KEY, PIXABAY_API_KEY (ou PEXELS_API_KEY), TELEGRAM_BOT_TOKEN e
+# A IA é o GitHub Models (grátis, com o token do próprio workflow).
+# Precisa dos Secrets PIXABAY_API_KEY (ou PEXELS_API_KEY), TELEGRAM_BOT_TOKEN e
 # TELEGRAM_CHAT_ID. Sem eles, falha e o GitHub avisa por email.
 on:
   schedule:
@@ -15,6 +16,7 @@ concurrency:
 
 permissions:
   contents: write
+  models: read
 
 jobs:
   video:
@@ -36,7 +38,7 @@ jobs:
 
       - name: Escolher o tema
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_MODELS_TOKEN: ${{ github.token }}
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
         run: python faceless/plan.py faceless_out

@@ -2,7 +2,9 @@
 
 Uso: python faceless/plan.py <pasta de saída>
 
-Lê GEMINI_API_KEY e PIXABAY_API_KEY (ou PEXELS_API_KEY) do ambiente e nunca as escreve no ecrã.
+Lê GITHUB_MODELS_TOKEN (o token do próprio workflow, para o GitHub Models,
+gratuito) e PIXABAY_API_KEY (ou PEXELS_API_KEY) do ambiente, e nunca os
+escreve no ecrã. O plano gratuito do Gemini não existe na Europa.
 Escreve em <pasta>/plan.json o tema, o gancho, o título e a descrição, e em
 $MPT_HOME/config.toml a configuração do MoneyPrinterTurbo.
 """
@@ -21,8 +23,8 @@ import yaml
 HERE = Path(__file__).resolve().parent
 STATE = HERE / "state.json"
 TOPICS = HERE / "topics.yaml"
-GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-MODEL = os.environ.get("GEMINI_MODEL", "gemini-flash-latest")
+MODELS_BASE_URL = "https://models.github.ai/inference"
+MODEL = os.environ.get("GITHUB_MODEL", "openai/gpt-4.1-mini")
 HASHTAGS = "#miami #florida #vicecity #gta6 #facts #shorts"
 
 PROMPT = """You plan one vertical short video (about 30 seconds) for a faceless \
@@ -49,25 +51,26 @@ def _clean_hook(text) -> str | None:
     return text if 2 <= len(text.split()) <= 7 and len(text) <= 40 else None
 
 
-def _ask(prompt: str, key: str) -> dict:
+def _ask(prompt: str, token: str) -> dict:
     response = requests.post(
-        GEMINI_URL.format(model=MODEL),
-        headers={"x-goog-api-key": key},
-        json={
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"responseMimeType": "application/json", "temperature": 1.0},
-        },
+        f"{MODELS_BASE_URL}/chat/completions",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"model": MODEL, "temperature": 1.0,
+              "messages": [{"role": "user", "content": prompt}]},
         timeout=30,
     )
+    if response.status_code != 200:
+        print(f"aviso: o GitHub Models respondeu {response.status_code}: {response.text[:200]}",
+              file=sys.stderr)
     response.raise_for_status()
-    text = response.json()["candidates"][0]["content"]["parts"][0]["text"]
+    text = response.json()["choices"][0]["message"]["content"]
     return json.loads(text[text.find("{") : text.rfind("}") + 1])
 
 
-def choose(niche: str, seeds: list[str], done: list[str], key: str) -> dict:
+def choose(niche: str, seeds: list[str], done: list[str], token: str) -> dict:
     prompt = PROMPT.format(niche=niche, done="\n".join(f"- {t}" for t in done[-60:]) or "- none")
     try:
-        data = _ask(prompt, key)
+        data = _ask(prompt, token)
         subject = str(data.get("subject", "")).strip()
         hook = _clean_hook(data.get("hook"))
         if subject and hook and subject not in done:
@@ -91,40 +94,42 @@ def toml_string(value: str) -> str:
     return json.dumps(value)  # uma string JSON é uma string TOML básica válida
 
 
-def write_config(home: Path, gemini_key: str, source: str, footage_key: str) -> None:
+def write_config(home: Path, token: str, source: str, footage_key: str) -> None:
     home.mkdir(parents=True, exist_ok=True)
-    (home / "config.toml").write_text(
-        "[app]\n"
-        f"video_source = {toml_string(source)}\n"
-        f"{source}_api_keys = [{toml_string(footage_key)}]\n"
-        'llm_provider = "gemini"\n'
-        f"gemini_api_key = {toml_string(gemini_key)}\n"
-        f"gemini_model_name = {toml_string(MODEL)}\n"
-        'subtitle_provider = "edge"\n',
-        encoding="utf-8",
-    )
+    lines = [
+        "[app]",
+        f"video_source = {toml_string(source)}",
+        f"{source}_api_keys = [{toml_string(footage_key)}]",
+        # O GitHub Models fala o mesmo protocolo da OpenAI.
+        'llm_provider = "openai"',
+        f"openai_api_key = {toml_string(token)}",
+        f"openai_base_url = {toml_string(MODELS_BASE_URL)}",
+        f"openai_model_name = {toml_string(MODEL)}",
+        'subtitle_provider = "edge"',
+    ]
+    (home / "config.toml").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def main() -> int:
     out = Path(sys.argv[1] if len(sys.argv) > 1 else "faceless_out")
-    gemini_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    token = os.environ.get("GITHUB_MODELS_TOKEN", "").strip()
     # O Pexels suspendeu as chaves novas (novembro de 2026); o Pixabay serve igual.
     pexels_key = os.environ.get("PEXELS_API_KEY", "").strip()
     pixabay_key = os.environ.get("PIXABAY_API_KEY", "").strip()
     source, footage_key = ("pexels", pexels_key) if pexels_key else ("pixabay", pixabay_key)
-    missing = [name for name, value in (("GEMINI_API_KEY", gemini_key),
+    missing = [name for name, value in (("GITHUB_MODELS_TOKEN", token),
                                         ("PIXABAY_API_KEY", footage_key)) if not value]
     if missing:
-        print(f"erro: faltam os Secrets {', '.join(missing)} no repositório", file=sys.stderr)
+        print(f"erro: faltam {', '.join(missing)}", file=sys.stderr)
         return 1
     topics = yaml.safe_load(TOPICS.read_text(encoding="utf-8"))
     done = json.loads(STATE.read_text(encoding="utf-8"))["done"] if STATE.exists() else []
-    plan = choose(topics["niche"], topics["seeds"], done, gemini_key)
+    plan = choose(topics["niche"], topics["seeds"], done, token)
     plan["description"] = "\n\n".join(p for p in (plan["description"], HASHTAGS) if p)
-    out.mkdir(parents=True, exist_ok=True)
     plan["source"] = source
+    out.mkdir(parents=True, exist_ok=True)
     (out / "plan.json").write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
-    write_config(Path(os.environ["MPT_HOME"]), gemini_key, source, footage_key)
+    write_config(Path(os.environ["MPT_HOME"]), token, source, footage_key)
     print(f"tema: {plan['subject']}")
     return 0
 

@@ -1,6 +1,8 @@
 """Texto do gancho e título de publicação, escritos por uma IA gratuita.
 
-Tenta o Gemini (com GEMINI_API_KEY), depois o Pollinations (sem chave). Se
+Tenta o GitHub Models (com o GITHUB_TOKEN do próprio workflow, gratuito),
+depois o Gemini (com GEMINI_API_KEY; o plano gratuito não existe na Europa),
+depois o Pollinations (sem chave). Se
 os dois falharem ou responderem mal, o gancho vem de uma lista fixa e o título
 fica por conta do título original do clip. Nunca impede a entrega de um clip.
 """
@@ -19,6 +21,8 @@ log = logging.getLogger(__name__)
 
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 POLLINATIONS_URL = "https://text.pollinations.ai/openai"
+GITHUB_MODELS_URL = "https://models.github.ai/inference/chat/completions"
+GITHUB_MODEL = "openai/gpt-4.1-mini"
 TIMEOUT = 20
 POLLINATIONS_TIMEOUT = 45  # é gratuito e às vezes lento
 MAX_TRANSCRIPT = 1500
@@ -115,6 +119,30 @@ def _ask_gemini(prompt: str, api_key: str, model: str, session: requests.Session
     return _parse(response.json()["candidates"][0]["content"]["parts"][0]["text"])
 
 
+def _ask_github(prompt: str, token: str, model: str, session: requests.Session) -> dict:
+    response = session.post(
+        GITHUB_MODELS_URL,
+        headers={"Authorization": f"Bearer {token}"},
+        json={"model": model, "messages": [{"role": "user", "content": prompt}]},
+        timeout=TIMEOUT,
+    )
+    response.raise_for_status()
+    return _parse(response.json()["choices"][0]["message"]["content"])
+
+
+def _describe(error: Exception) -> str:
+    """O erro, sem nada do pedido (que leva a chave): tipo, código e mensagem do serviço."""
+    response = getattr(error, "response", None)
+    if response is None:
+        return type(error).__name__
+    try:
+        body = response.json()
+        detail = body.get("error", {}).get("message", "") if isinstance(body, dict) else ""
+    except ValueError:
+        detail = ""
+    return f"{type(error).__name__} {response.status_code} {str(detail)[:200]}".strip()
+
+
 def _ask_pollinations(prompt: str, session: requests.Session) -> dict:
     response = session.post(
         POLLINATIONS_URL,
@@ -135,6 +163,8 @@ def write_texts(
     api_key: str,
     model: str,
     session: requests.Session,
+    github_token: str = "",
+    github_model: str = GITHUB_MODEL,
 ) -> Texts:
     words = " ".join(transcript.split())
     prompt = _PROMPT.format(
@@ -144,6 +174,8 @@ def write_texts(
         transcript=words[:MAX_TRANSCRIPT] or "(nothing understandable)",
     )
     writers = []
+    if github_token:
+        writers.append(("github", lambda: _ask_github(prompt, github_token, github_model, session)))
     if api_key:
         writers.append(("gemini", lambda: _ask_gemini(prompt, api_key, model, session)))
     writers.append(("pollinations", lambda: _ask_pollinations(prompt, session)))
@@ -152,7 +184,7 @@ def write_texts(
             data = ask()
         except (requests.RequestException, ValueError, KeyError, IndexError, TypeError) as error:
             # Nunca registar o pedido: leva a chave no cabeçalho.
-            log.warning("o %s não escreveu o gancho: %s", name, type(error).__name__)
+            log.warning("o %s não escreveu o gancho: %s", name, _describe(error))
             continue
         hook = clean_hook(data.get("hook"))
         if hook is None:

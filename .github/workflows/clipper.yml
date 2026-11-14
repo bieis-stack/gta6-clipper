@@ -20,6 +20,7 @@ concurrency:
 
 permissions:
   contents: write
+  models: read  # GitHub Models, para escrever os ganchos (grátis)
 
 jobs:
   run:
@@ -55,6 +56,7 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           # Opcional: sem ela, o gancho é escrito pelo Pollinations ou por uma lista fixa.
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_MODELS_TOKEN: ${{ github.token }}
           GAME_NAME: ${{ inputs.game_name }}
           DRY_RUN: ${{ inputs.dry_run }}
         run: |

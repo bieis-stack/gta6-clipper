@@ -252,10 +252,12 @@ def test_writer_passes_the_gemini_key_and_model(monkeypatch):
         return "texts"
 
     monkeypatch.setenv("GEMINI_API_KEY", " k3y ")
+    monkeypatch.setenv("GITHUB_MODELS_TOKEN", "ghs_x")
     monkeypatch.setattr(cli, "write_texts", fake_write_texts)
     config = cli.Config("Grand Theft Auto VI", (), SelectionConfig(), (), HookConfig(model="m1"))
     write = cli._writer(config)
     assert write("hello", clip("Abc", name="xQc", title="lol")) == "texts"
     assert seen["api_key"] == "k3y" and seen["model"] == "m1"
+    assert seen["github_token"] == "ghs_x" and seen["github_model"] == "openai/gpt-4.1-mini"
     assert seen["transcript"] == "hello" and seen["streamer"] == "xQc" and seen["clip_id"] == "Abc"
     assert seen["game"] == "Grand Theft Auto VI"

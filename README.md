@@ -26,8 +26,8 @@ execução falha e o GitHub manda-te um email a lembrar de configurar o bot.
 3. Ignora clips repetidos do mesmo momento.
 4. Edita os melhores e envia-os para o teu Telegram. Cada vídeo abre com o
    momento mais forte do clip (o pico de volume) e uma frase de gancho em
-   letras amarelas, escrita por uma IA gratuita a partir do que o streamer
-   diz; depois recomeça o clip desde o início, com legendas palavra a palavra.
+   letras amarelas, escrita por uma IA gratuita (GitHub Models) a partir do
+   que o streamer diz; depois recomeça o clip desde o início, com legendas palavra a palavra.
 
 ## Instalação
 
@@ -90,12 +90,11 @@ só se fizeste o passo 2.
 | `TWITCH_CLIENT_SECRET` | Client Secret da Twitch |
 | `TELEGRAM_BOT_TOKEN` | token do bot |
 | `TELEGRAM_CHAT_ID` | o teu chat id |
-| `GEMINI_API_KEY` | opcional: chave grátis do Gemini para escrever os ganchos |
 
-Para a `GEMINI_API_KEY`: entra em <https://aistudio.google.com/app/apikey>
-com a tua conta Google, carrega em **Create API key** e copia a chave. É
-gratuita. Sem ela, os ganchos são escritos pelo Pollinations (grátis, sem
-chave) ou, se esse falhar, vêm de uma lista de frases fixas.
+Os ganchos não precisam de chave: são escritos pelo GitHub Models, de graça,
+com o token do próprio workflow. Se falhar, tenta o Pollinations e, por fim,
+uma lista de frases fixas. (O Gemini gratuito não existe na Europa; a
+`GEMINI_API_KEY` só serve com um plano pago.)
 
 ### 5. Streamers
 
@@ -142,8 +141,8 @@ Tudo em `config.yaml`:
   (o dia conta em UTC).
 - `hashtags`: vão na descrição; a primeira vai também no título.
 - `hook`: `enabled: false` desliga o gancho e a capa; `seconds` é a duração
-  do momento forte no início (0 tira só esse momento); `model` é o modelo do
-  Gemini.
+  do momento forte no início (0 tira só esse momento); `github_model` é o
+  modelo do GitHub Models.
 
 O kit do canal (nome, bio, avatar, banner, como publicar) está em
 [`docs/canal/`](docs/canal/README.md). O segundo canal, de vídeos de factos

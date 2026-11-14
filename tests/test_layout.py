@@ -186,16 +186,41 @@ def test_facecam_detection_reads_hevc_clips(tmp_path, monkeypatch):
 
 
 def test_filter_with_flash_puts_the_peak_before_the_clip():
+    # O troço do pico chega como entrada 0 (já cortada pelo -ss/-t) e o clip
+    # inteiro como entrada 1: nada fica à espera em memória.
     f = build_filter(INFO_1080P30, None, Path("a.ass"), Path("fonts"), flash=(12.0, 1.5))
-    assert "trim=start=12:duration=1.5" in f and "atrim=start=12:duration=1.5" in f
+    assert "[0:v]setpts=PTS-STARTPTS[v1]" in f and "[1:v]setpts=PTS-STARTPTS[v2]" in f
+    assert "[0:a]asetpts" in f and "[1:a]asetpts" in f
     assert "concat=n=2:v=1:a=1[src][a]" in f
+    assert "split=2[fv]" not in f and "trim=" not in f
     assert f.count("[src]") == 2  # produzido pela concatenação e usado pelo enquadramento
 
 
 def test_filter_with_flash_and_no_audio_concatenates_only_video():
     info = replace(INFO_1080P30, has_audio=False)
     f = build_filter(info, None, Path("a.ass"), Path("fonts"), flash=(3.0, 1.5))
-    assert "concat=n=2:v=1:a=0[src]" in f and "atrim" not in f
+    assert "concat=n=2:v=1:a=0[src]" in f and "asetpts" not in f
+
+
+def test_render_with_flash_reads_the_peak_as_a_separate_input(make_video, tmp_path, monkeypatch):
+    seen = {}
+    real_run = layout.subprocess.run
+
+    def spy(command, **kwargs):
+        if command[0] == "ffmpeg":
+            seen["command"] = command
+        return real_run(command, **kwargs)
+
+    monkeypatch.setattr(layout.subprocess, "run", spy)
+    src = make_video(seconds=10)
+    ass = tmp_path / "a.ass"
+    ass.write_text(build_ass([], title="H", credit="c", duration=11.5, **text_positions(False)),
+                   encoding="utf-8")
+    render(src, tmp_path / "o.mp4", facecam=None, ass_path=ass, fonts_dir=FONTS, flash=(6.0, 1.5))
+    command = seen["command"]
+    first = command.index("-i")
+    assert command[first - 4 : first] == ["-ss", "6", "-t", "1.5"]
+    assert command.count("-i") == 2
 
 
 @pytest.mark.parametrize("audio", [True, False])

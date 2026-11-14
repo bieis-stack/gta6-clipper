@@ -34,6 +34,7 @@ class HookConfig:
     enabled: bool = True
     seconds: float = 1.5  # duração do flash-forward; 0 desliga só o flash-forward
     model: str = "gemini-flash-latest"
+    github_model: str = "openai/gpt-4.1-mini"
 
 
 @dataclass(frozen=True)
@@ -134,7 +135,7 @@ def _hashtags(raw) -> tuple[str, ...]:
 
 def _hook(raw) -> HookConfig:
     data = _mapping(raw, "hook")
-    _reject_unknown(data, {"enabled", "seconds", "model"}, "hook")
+    _reject_unknown(data, {"enabled", "seconds", "model", "github_model"}, "hook")
     defaults = HookConfig()
     enabled = data.get("enabled", defaults.enabled)
     if not isinstance(enabled, bool):
@@ -142,10 +143,13 @@ def _hook(raw) -> HookConfig:
     seconds = _number(data.get("seconds", defaults.seconds), "seconds")
     if seconds > 5:
         raise ConfigError("config: 'seconds' em hook não pode passar de 5")
-    model = data.get("model", defaults.model)
-    if not isinstance(model, str) or not model.strip():
-        raise ConfigError("config: 'model' em hook tem de ser o nome de um modelo do Gemini")
-    return HookConfig(enabled=enabled, seconds=seconds, model=model.strip())
+    names = {}
+    for key in ("model", "github_model"):
+        value = data.get(key, getattr(defaults, key))
+        if not isinstance(value, str) or not value.strip():
+            raise ConfigError(f"config: '{key}' em hook tem de ser o nome de um modelo")
+        names[key] = value.strip()
+    return HookConfig(enabled=enabled, seconds=seconds, **names)
 
 
 def load_config(path: Path) -> Config:
