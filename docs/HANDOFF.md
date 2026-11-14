@@ -123,6 +123,12 @@ Os dados sobre duração e frequência ideais vêm de blogues de quem vende
 ferramentas de clipping, não de testes controlados. Por isso esses valores
 são configuráveis em `config.yaml`; não os trates como verdade assente.
 
+## Notas para o dono
+
+`docs/notas/Clipper GTA VI.md` é um resumo em linguagem simples, feito para o
+cofre do Obsidian dele (pasta `OBSIDIAN CLAUDE`, no portátil). Atualiza-o quando
+o estado mudar.
+
 ## Armadilhas já encontradas
 
 - O descodificador de áudio interno do `faster-whisper` falha com o PyAV
